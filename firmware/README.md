@@ -1,1 +1,1 @@
-fNIRS Firmware
+# fNIRS Firmware
