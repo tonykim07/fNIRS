@@ -21,3 +21,16 @@ Project Outputs for*
 History
 exports/*
 !exports/manual
+
+# workspace data
+.vscode/
+.metadata/
+*.xml
+*.bin
+*makefile
+
+#DS_Store
+*.DS_Store
+
+#html
+*.html
