@@ -1,0 +1,3 @@
+../Core/Src/gpio_expander.c:17:6:gpio_expander_config	1
+../Core/Src/gpio_expander.c:35:6:gpio_expander_write_pin	3
+../Core/Src/gpio_expander.c:57:6:gpio_expander_write_port	2

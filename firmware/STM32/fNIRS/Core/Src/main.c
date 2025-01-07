@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -118,11 +119,13 @@ int main(void)
   MX_ADC3_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
-  MX_SDMMC1_SD_Init();
+  //MX_SDMMC1_SD_Init();
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
+
+  const char* message = "Hello world!\r\n";
 
   /* USER CODE END 2 */
 
@@ -133,6 +136,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  HAL_Delay(200);
+	  HAL_GPIO_TogglePin(MCU_TEST_LED_GPIO_Port, MCU_TEST_LED_Pin);
+	  HAL_Delay(200);
+	  HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
   }
   /* USER CODE END 3 */
 }
