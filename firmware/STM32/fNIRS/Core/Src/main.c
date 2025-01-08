@@ -18,10 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+#include "mux_control.h"
 
 /* USER CODE END Includes */
 
@@ -124,6 +125,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
+  // mux_control_init(&hi2c1);
 
   const char* message = "Hello world!\r\n";
 
@@ -140,6 +142,7 @@ int main(void)
 	  HAL_GPIO_TogglePin(MCU_TEST_LED_GPIO_Port, MCU_TEST_LED_Pin);
 	  HAL_Delay(200);
 	  HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
+    // mux_control_sequencer();
   }
   /* USER CODE END 3 */
 }

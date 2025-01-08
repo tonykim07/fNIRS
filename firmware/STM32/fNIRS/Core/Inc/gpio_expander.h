@@ -3,7 +3,6 @@
 #define INC_GPIO_EXPANDER_H_
 
 /* INCLUDES */
-//#include "stm32l4xx_hal_conf.h"
 #include "main.h"
 /* DEFINES */
 
