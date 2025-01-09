@@ -4,7 +4,9 @@
 
 /* INCLUDES */
 #include "main.h"
+
 /* DEFINES */
+#define DEBUG_GPIO_EXPANDER (1)
 
 /* DATA STRUCTURES */
 
@@ -37,5 +39,10 @@ typedef struct
 void gpio_expander_config(gpio_expander_handler_S* handler);
 void gpio_expander_write_pin(gpio_expander_handler_S* handler, gpio_expander_port_E port, uint8_t pin, gpio_expander_pin_state_E pin_state);
 void gpio_expander_write_port(gpio_expander_handler_S* handler, gpio_expander_port_E port, uint8_t pin_states);
+
+#if DEBUG_GPIO_EXPANDER
+void gpio_expander_debug_write_address(gpio_expander_handler_S* handler, uint8_t reg_addr, uint8_t data_to_write);
+uint8_t gpio_expander_debug_read_address(gpio_expander_handler_S* handler, uint8_t reg_addr);
+#endif // DEBUG_GPIO_EXPANDER
 
 #endif /* INC_GPIO_EXPANDER_H_ */

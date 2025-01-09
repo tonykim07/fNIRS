@@ -1,3 +1,5 @@
 ../Core/Src/mux_control.c:98:13:mux_control_update_gpios	6
-../Core/Src/mux_control.c:143:6:mux_control_init	2
-../Core/Src/mux_control.c:157:6:mux_control_sequencer	8
+../Core/Src/mux_control.c:142:6:mux_control_init	2
+../Core/Src/mux_control.c:156:6:mux_control_enable_sequencer	1
+../Core/Src/mux_control.c:161:6:mux_control_sequencer	8
+../Core/Src/mux_control.c:209:9:test_mux_control_read_addr	1

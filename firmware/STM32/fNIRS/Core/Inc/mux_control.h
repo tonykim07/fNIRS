@@ -5,6 +5,7 @@
 /* INCLUDES */
 #include "main.h"
 #include "stdbool.h"
+#include "gpio_expander.h"
 
 /* DEFINES */
 
@@ -38,6 +39,11 @@ typedef struct
 
 /* FUNCTION DECLARATIONS */
 void mux_control_init(I2C_HandleTypeDef* hi2c);
+void mux_control_enable_sequencer(void);
 void mux_control_sequencer(void);
+
+#if (DEBUG_GPIO_EXPANDER)
+uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux);
+#endif // DEBUG_GPIO_EXPANDER
 
 #endif /* INC_MUX_CONTROL_H_ */

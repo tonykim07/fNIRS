@@ -5,9 +5,9 @@
 
 /* DEFINES */
 
-// TODO: update these slave addresses
-#define GPIO_EXPANDER_SLAVE_ADDR_ONE (0x1)
-#define GPIO_EXPANDER_SLAVE_ADDR_TWO (0x2)
+// Note: lsb is the R/W bit: R = 1, W = 0
+#define GPIO_EXPANDER_SLAVE_ADDR_ONE_READ (0b01000001)
+#define GPIO_EXPANDER_SLAVE_ADDR_TWO_READ (0b01000011)
 
 // GPIO Expander pin states
 #define PORT_ZERO_CHANNEL_ONE_PIN_STATE     (0b00100100)
@@ -22,19 +22,19 @@
 #define PORT_ZERO_CHANNEL_FOUR_PIN_STATE    (0b11111111)
 #define PORT_ONE_CHANNEL_FOUR_PIN_STATE     (0b00001111)
 
-#define PORT_ZERO_DISABLED_PIN_STATE        (0b00100100)
-#define PORT_ONE_DISABLED_PIN_STATE         (0b00001001)
+#define PORT_ZERO_DISABLED_PIN_STATE        (0b00000000)
+#define PORT_ONE_DISABLED_PIN_STATE         (0b00000000)
 
 /* DATA STRUCTURES */
 static gpio_expander_handler_S gpio_expander_vars[NUM_OF_MUX_CONTROLS] = 
 {
     {
-        .device_address = GPIO_EXPANDER_SLAVE_ADDR_ONE,
+        .device_address = GPIO_EXPANDER_SLAVE_ADDR_ONE_READ,
         .gpio_pin_config = {0x00, 0x00},
         .gpio_polarity_config = {0x00, 0x00},
     },
     {
-        .device_address = GPIO_EXPANDER_SLAVE_ADDR_TWO,
+        .device_address = GPIO_EXPANDER_SLAVE_ADDR_TWO_READ,
         .gpio_pin_config = {0x00, 0x00},
         .gpio_polarity_config = {0x00, 0x00},
     }
@@ -118,7 +118,6 @@ static void mux_control_update_gpios(mux_input_channel_E input_channel)
             gpio_expander_write_port(&gpio_expander_vars[MUX_CONTROL_ONE], GPIO_PORT_ONE, PORT_ONE_CHANNEL_THREE_PIN_STATE);
             gpio_expander_write_port(&gpio_expander_vars[MUX_CONTROL_TWO], GPIO_PORT_ZERO, PORT_ZERO_CHANNEL_THREE_PIN_STATE);
             gpio_expander_write_port(&gpio_expander_vars[MUX_CONTROL_TWO], GPIO_PORT_ONE, PORT_ONE_CHANNEL_THREE_PIN_STATE);
-
             break;
 
         case MUX_INPUT_CHANNEL_FOUR:
@@ -154,6 +153,11 @@ void mux_control_init(I2C_HandleTypeDef* hi2c)
     mux_control_update_gpios(MUX_DISABLED);
 }
 
+void mux_control_enable_sequencer(void)
+{
+    mux_control_vars.enabled = true;
+}
+
 void mux_control_sequencer(void)
 {
     mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
@@ -181,7 +185,6 @@ void mux_control_sequencer(void)
                 break;
 
             case MUX_DISABLED:
-                // TODO: currently there is no logic to enable the mux
                 if (mux_control_vars.enabled)
                 {
                     next_channel = MUX_INPUT_CHANNEL_FOUR;
@@ -201,3 +204,10 @@ void mux_control_sequencer(void)
         mux_control_vars.timer++;
     }
 }
+
+#if DEBUG_GPIO_EXPANDER
+uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux)
+{
+    return gpio_expander_debug_read_address(&gpio_expander_vars[mux], reg_addr);
+}
+#endif // DEBUG_GPIO_EXPANDER

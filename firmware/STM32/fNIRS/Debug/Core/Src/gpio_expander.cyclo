@@ -1,3 +1,5 @@
 ../Core/Src/gpio_expander.c:17:6:gpio_expander_config	1
 ../Core/Src/gpio_expander.c:35:6:gpio_expander_write_pin	3
-../Core/Src/gpio_expander.c:57:6:gpio_expander_write_port	2
+../Core/Src/gpio_expander.c:58:6:gpio_expander_write_port	2
+../Core/Src/gpio_expander.c:69:6:gpio_expander_debug_write_address	1
+../Core/Src/gpio_expander.c:77:9:gpio_expander_debug_read_address	1
