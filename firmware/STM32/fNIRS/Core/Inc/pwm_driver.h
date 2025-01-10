@@ -49,7 +49,7 @@ typedef struct
 typedef struct
 {
     const uint8_t device_address;
-    const uint8_t enable_line_gpio_pin;
+    const uint16_t enable_line_gpio_pin;
     GPIO_TypeDef* gpio_port;
     I2C_HandleTypeDef *i2c_handler;
 

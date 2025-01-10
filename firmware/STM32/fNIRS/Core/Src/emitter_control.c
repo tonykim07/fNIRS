@@ -4,8 +4,8 @@
 #include "pwm_driver.h"
 
 /* DEFINES */
-// Note: lsb is read/write bit: R = 0, W = 1
-#define PWM_DRIVER_SLAVE_ADDR_READ (0b1001011)
+// Note: lsb is read/write bit: R = 1, W = 0
+#define PWM_DRIVER_SLAVE_ADDR_READ (0b10001011)
 
 /* DATA STRUCTURES */
 
@@ -32,6 +32,9 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             break; 
 
         case USER_CONTROL: 
+            // emitter_control_vars.duty_cycle[0] = 0.10;
+            // emitter_control_vars.phase_shift[0] = 0.10;
+            // emitter_control_vars.pwm_frequency = 500;
             break;
 
         case SEQUENCER_CONTROL: 
@@ -64,19 +67,21 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
 void emitter_control_init(I2C_HandleTypeDef* hi2c)
 {
     pwm_config.i2c_handler = hi2c;
-    pwm_driver_deassert_enable_line(&pwm_config);
+    pwm_config.device_config_vars.totem_pole_enable = true;
+    pwm_driver_assert_enable_line(&pwm_config);
     pwm_driver_config(&pwm_config);
 }
 
 void emitter_control_enable(void)
 {
     emitter_control_vars.emitter_control_enabled = true;
-    pwm_driver_assert_enable_line(&pwm_config); 
+    // Deasserting enables the controller
+    pwm_driver_deassert_enable_line(&pwm_config); 
 }
 
 void emitter_control_disable(void)
 {
-    pwm_driver_deassert_enable_line(&pwm_config);
+    pwm_driver_assert_enable_line(&pwm_config);
     emitter_control_vars.emitter_control_enabled = false;
 }
 
@@ -102,7 +107,7 @@ void emitter_control_state_machine(void)
     emitter_control_state_E next_state = curr_state;
 
     // update timer threshold value to determine the frequency of the state machine
-    if (emitter_control_vars.timer > 50U)
+    if (emitter_control_vars.timer > 5U)
     {
         switch (curr_state)
         {
@@ -154,3 +159,10 @@ void emitter_control_state_machine(void)
         emitter_control_vars.timer++;
     }
 }
+
+#if DEBUG_PWM_DRIVER
+uint8_t test_pwm_driver_read_addr(uint8_t reg_addr)
+{
+    return pwm_driver_debug_read_address(&pwm_config, reg_addr);
+}
+#endif // DEBUG_PWM_DRIVER
