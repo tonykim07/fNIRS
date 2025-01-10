@@ -1,0 +1,8 @@
+../Core/Src/emitter_control.c:27:13:emitter_control_update_pwm_channels	5
+../Core/Src/emitter_control.c:64:6:emitter_control_init	1
+../Core/Src/emitter_control.c:71:6:emitter_control_enable	1
+../Core/Src/emitter_control.c:77:6:emitter_control_disable	1
+../Core/Src/emitter_control.c:83:6:emitter_control_request_operating_mode	1
+../Core/Src/emitter_control.c:88:6:emitter_control_update_frequency	1
+../Core/Src/emitter_control.c:93:6:emitter_control_update_duty_and_phase	1
+../Core/Src/emitter_control.c:99:6:emitter_control_state_machine	12

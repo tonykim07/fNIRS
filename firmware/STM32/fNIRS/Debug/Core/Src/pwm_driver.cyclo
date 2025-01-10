@@ -1,0 +1,8 @@
+../Core/Src/pwm_driver.c:33:6:pwm_driver_config	10
+../Core/Src/pwm_driver.c:85:6:pwm_driver_assert_enable_line	1
+../Core/Src/pwm_driver.c:90:6:pwm_driver_deassert_enable_line	1
+../Core/Src/pwm_driver.c:95:6:pwm_driver_update_frequency	2
+../Core/Src/pwm_driver.c:120:6:pwm_driver_update_individual_patterns	6
+../Core/Src/pwm_driver.c:180:6:pwm_driver_update_all_patterns	7
+../Core/Src/pwm_driver.c:238:6:pwm_driver_debug_write_address	1
+../Core/Src/pwm_driver.c:246:9:pwm_driver_debug_read_address	1

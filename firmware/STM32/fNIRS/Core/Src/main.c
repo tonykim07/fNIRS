@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "mux_control.h"
+#include "emitter_control.h"
 
 /* USER CODE END Includes */
 
@@ -127,7 +128,11 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   mux_control_init(&hi2c1);
+  emitter_control_init(&hi2c2);
+
+  // TODO: can add logic around enabling
   mux_control_enable_sequencer();
+  emitter_control_enable();
 
   const char* message = "Hello world!\r\n";
 
@@ -146,6 +151,7 @@ int main(void)
 	  HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
     HAL_Delay(200);
     mux_control_sequencer();
+    emitter_control_state_machine();
   }
   /* USER CODE END 3 */
 }

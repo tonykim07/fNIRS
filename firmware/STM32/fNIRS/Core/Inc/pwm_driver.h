@@ -4,8 +4,10 @@
 
 /* INCLUDES */
 #include "main.h"
+#include "stdbool.h"
 
 /* DEFINES */
+#define DEBUG_PWM_DRIVER (1U)
 
 /* DATA STRUCTURES */
 typedef enum
@@ -32,17 +34,45 @@ typedef enum
 
 typedef struct
 {
+    bool restart_enable;
+    bool auto_increment_enable;
+    bool sleep_mode_enable;
+    bool sub_addr_one_enable; 
+    bool sub_addr_two_enable;
+    bool sub_addr_three_enable;
+
+    bool inverted_output_enable;
+    bool totem_pole_enable;
+    bool output_default_on_enable;
+} device_config_S;
+
+typedef struct
+{
     const uint8_t device_address;
+    const uint8_t enable_line_gpio_pin;
+    GPIO_TypeDef* gpio_port;
     I2C_HandleTypeDef *i2c_handler;
+
+    device_config_S device_config_vars;
+
+    float pwm_frequency;
+    float duty_cycle[NUM_OF_PWM_CHANNELS];
+    float phase_shift[NUM_OF_PWM_CHANNELS];
+
 } pwm_driver_handler_S;
 
 
 /* FUNCTION DECLARATIONS */
 void pwm_driver_config(pwm_driver_handler_S* handler);
-void pwm_driver_update_frequency(pwm_driver_handler_S* handler);
-// TODO: add phase control to these functions
-void pwm_driver_update_individual_duty_cycle(pwm_driver_handler_S* handler, pwm_channel_E channel, float32_t duty_cycle);
-void pwm_driver_update_all_duty_cycles(pwm_driver_handler_S* handler, float32_t duty_cycle);
+void pwm_driver_assert_enable_line(pwm_driver_handler_S* handler);
+void pwm_driver_deassert_enable_line(pwm_driver_handler_S* handler);
+void pwm_driver_update_frequency(pwm_driver_handler_S* handler, float frequency_hz);
+void pwm_driver_update_individual_patterns(pwm_driver_handler_S* handler, pwm_channel_E channel, float duty_cycle, float phase_shift);
+void pwm_driver_update_all_patterns(pwm_driver_handler_S* handler, float duty_cycle, float phase_shift);
 
+#if DEBUG_PWM_DRIVER
+void pwm_driver_debug_write_address(pwm_driver_handler_S* handler, uint8_t reg_addr, uint8_t data_to_write);
+uint8_t pwm_driver_debug_read_address(pwm_driver_handler_S* handler, uint8_t reg_addr);
+#endif // DEBUG_PWM_DRIVER
 
 #endif /* INC_PWM_DRIVER_H_ */
