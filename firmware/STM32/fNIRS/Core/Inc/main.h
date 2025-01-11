@@ -59,10 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SD_CARD_DETECT_Pin GPIO_PIN_13
 #define SD_CARD_DETECT_GPIO_Port GPIOC
-#define PWM_CTRL_EN1_Pin GPIO_PIN_11
-#define PWM_CTRL_EN1_GPIO_Port GPIOB
-#define PWM_CTRL_EN2_Pin GPIO_PIN_12
-#define PWM_CTRL_EN2_GPIO_Port GPIOB
+#define PWM_CTRL_EN1_Pin GPIO_PIN_7
+#define PWM_CTRL_EN1_GPIO_Port GPIOC
 #define MCU_TEST_LED_Pin GPIO_PIN_8
 #define MCU_TEST_LED_GPIO_Port GPIOA
 #define SPI_CS2_Pin GPIO_PIN_9
