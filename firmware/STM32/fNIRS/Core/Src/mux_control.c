@@ -153,6 +153,11 @@ void mux_control_init(I2C_HandleTypeDef* hi2c)
     mux_control_update_gpios(MUX_DISABLED);
 }
 
+mux_input_channel_E mux_control_get_curr_input_channel(void)
+{
+    return mux_control_vars.curr_input_channel;
+}
+
 void mux_control_enable_sequencer(void)
 {
     mux_control_vars.enabled = true;

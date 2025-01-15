@@ -1,0 +1,5 @@
+../Core/Src/sensing.c:118:6:sensing_init	1
+../Core/Src/sensing.c:125:7:sensing_get_sensor_calibrated_value	1
+../Core/Src/sensing.c:130:7:sensing_get_temperature_reading	1
+../Core/Src/sensing.c:135:6:sensing_update_all_temperature_readings	1
+../Core/Src/sensing.c:140:6:sensing_update_all_sensor_channels	2

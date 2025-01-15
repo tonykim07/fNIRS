@@ -1,5 +1,6 @@
 ../Core/Src/mux_control.c:98:13:mux_control_update_gpios	6
 ../Core/Src/mux_control.c:142:6:mux_control_init	2
-../Core/Src/mux_control.c:156:6:mux_control_enable_sequencer	1
-../Core/Src/mux_control.c:161:6:mux_control_sequencer	8
-../Core/Src/mux_control.c:209:9:test_mux_control_read_addr	1
+../Core/Src/mux_control.c:156:21:mux_control_get_curr_input_channel	1
+../Core/Src/mux_control.c:161:6:mux_control_enable_sequencer	1
+../Core/Src/mux_control.c:166:6:mux_control_sequencer	8
+../Core/Src/mux_control.c:214:9:test_mux_control_read_addr	1

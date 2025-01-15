@@ -39,6 +39,7 @@ typedef struct
 
 /* FUNCTION DECLARATIONS */
 void mux_control_init(I2C_HandleTypeDef* hi2c);
+mux_input_channel_E mux_control_get_curr_input_channel(void);
 void mux_control_enable_sequencer(void);
 void mux_control_sequencer(void);
 
