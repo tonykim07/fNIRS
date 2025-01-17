@@ -49,6 +49,8 @@ typedef struct
     adc_E adc_handler_mapping[NUM_OF_SENSOR_MODULES];
     ADC_ChannelConfTypeDef adc_channel_config[NUM_OF_SENSOR_MODULES];
 
+    uint8_t sampling_timer;
+
     float sensor_raw_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
     float sensor_calibrated_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
     float sensor_scale[NUM_OF_SENSOR_MODULES];

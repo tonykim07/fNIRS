@@ -24,6 +24,7 @@
 #include <string.h>
 #include "mux_control.h"
 #include "emitter_control.h"
+#include "sensing.h"
 
 /* USER CODE END Includes */
 
@@ -57,6 +58,7 @@ UART_HandleTypeDef huart1;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
+// float sensor_values[NUM_OF_SENSOR_MODULES] = { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,13 +126,20 @@ int main(void)
   
   mux_control_init(&hi2c1);
   emitter_control_init(&hi2c2);
+  sensing_init(&hadc1, &hadc2, &hadc3);
 
   // TODO: can add logic around enabling
   mux_control_enable_sequencer();
   emitter_control_enable();
+
+  // For debugging: Use this code to enable PWMs (see emitter_control.c)
   // emitter_control_request_operating_mode(USER_CONTROL);
 
   const char* message = "Hello world!\r\n";
+
+  // For debugging: Use this code to manually override state of the muxes
+  // mux_control_enable_sequencer_override();
+  // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
 
   /* USER CODE END 2 */
 
@@ -151,6 +160,15 @@ int main(void)
 
     mux_control_sequencer();
     emitter_control_state_machine();
+    sensing_update_all_sensor_channels();
+
+    // For debugging: Use this code to directly access sensor values, uncomment global array defined above 
+    // for (sensor_module_E i = (sensor_module_E)0; i < NUM_OF_SENSOR_MODULES; i++)
+    // {
+    //   sensor_values[i] = sensing_get_sensor_calibrated_value(i, MUX_INPUT_CHANNEL_ONE);
+    // }
+
+
   }
   /* USER CODE END 3 */
 }

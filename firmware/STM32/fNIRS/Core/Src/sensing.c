@@ -111,6 +111,7 @@ static fnirs_sense_vars_S sense_vars = {
     .sensor_calibrated_value = { { 0 } },
     .temp_sensor_raw_adc_value = { 0 },
     .temperature = { 0 },
+    .sampling_timer = 0,
 };
 
 /* FUNCTION DEFINITIONS */
@@ -140,19 +141,27 @@ void sensing_update_all_temperature_readings(void)
 void sensing_update_all_sensor_channels(void)
 {
     // TODO: optimize this function
-    mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
-
-    for (sensor_module_E i = (sensor_module_E)0; i < NUM_OF_SENSOR_MODULES; i++)
+    if (sense_vars.sampling_timer > 10)
     {
-        float raw_adc_value = 0.0;
-        ADC_HandleTypeDef *adc_handler = sense_vars.adc_handler[sense_vars.adc_handler_mapping[i]];
+        mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
 
-        HAL_ADC_ConfigChannel(adc_handler, &sense_vars.adc_channel_config[i]);
-        HAL_ADC_Start(adc_handler);
-        HAL_ADC_PollForConversion(adc_handler, HAL_MAX_DELAY);
-        raw_adc_value = HAL_ADC_GetValue(adc_handler);
-        sense_vars.sensor_raw_value[i][curr_channel] = raw_adc_value;
-        sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value + sense_vars.sensor_offset[i];
+        for (sensor_module_E i = (sensor_module_E)0; i < NUM_OF_SENSOR_MODULES; i++)
+        {
+            float raw_adc_value = 0.0;
+            ADC_HandleTypeDef *adc_handler = sense_vars.adc_handler[sense_vars.adc_handler_mapping[i]];
+
+            HAL_ADC_ConfigChannel(adc_handler, &sense_vars.adc_channel_config[i]);
+            HAL_ADC_Start(adc_handler);
+            HAL_ADC_PollForConversion(adc_handler, HAL_MAX_DELAY);
+            raw_adc_value = HAL_ADC_GetValue(adc_handler);
+            sense_vars.sensor_raw_value[i][curr_channel] = raw_adc_value;
+            sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value + sense_vars.sensor_offset[i];
+        }
+        sense_vars.sampling_timer = 0U;
+    }
+    else
+    {
+        sense_vars.sampling_timer++;
     }
 }
 
