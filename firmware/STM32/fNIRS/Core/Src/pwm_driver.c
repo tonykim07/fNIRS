@@ -92,9 +92,42 @@ void pwm_driver_deassert_enable_line(pwm_driver_handler_S* handler)
     HAL_GPIO_WritePin(handler->gpio_port, handler->enable_line_gpio_pin, GPIO_PIN_RESET);
 }
 
+void pwm_driver_enable_sleep_mode(pwm_driver_handler_S* handler)
+{
+    uint8_t mode1_reg_config;
+    I2C_HandleTypeDef *i2c_handler = handler->i2c_handler;
+    const uint8_t device_addr_read = handler->device_address;
+    const uint8_t device_addr_write = handler->device_address & ~(0x1);
+
+    HAL_I2C_Mem_Read(i2c_handler, device_addr_read, MODE1_ADDR, I2C_MEMADD_SIZE_8BIT, &mode1_reg_config,
+                     sizeof(mode1_reg_config), HAL_MAX_DELAY);
+    
+    mode1_reg_config |= (1U << 4U);
+    HAL_I2C_Mem_Write(i2c_handler, device_addr_write, MODE1_ADDR, I2C_MEMADD_SIZE_8BIT, &mode1_reg_config,
+                      sizeof(mode1_reg_config), HAL_MAX_DELAY);
+}
+
+void pwm_driver_disable_sleep_mode(pwm_driver_handler_S* handler)
+{
+    uint8_t mode1_reg_config;
+    I2C_HandleTypeDef *i2c_handler = handler->i2c_handler;
+    const uint8_t device_addr_read = handler->device_address;
+    const uint8_t device_addr_write = handler->device_address & ~(0x1);
+
+    HAL_I2C_Mem_Read(i2c_handler, device_addr_read, MODE1_ADDR, I2C_MEMADD_SIZE_8BIT, &mode1_reg_config,
+                     sizeof(mode1_reg_config), HAL_MAX_DELAY);
+    
+    mode1_reg_config &= ~(1U << 4U);
+    HAL_I2C_Mem_Write(i2c_handler, device_addr_write, MODE1_ADDR, I2C_MEMADD_SIZE_8BIT, &mode1_reg_config,
+                      sizeof(mode1_reg_config), HAL_MAX_DELAY);
+}
+
 void pwm_driver_update_frequency(pwm_driver_handler_S* handler, float frequency_hz)
 {
     handler->pwm_frequency = frequency_hz;
+
+    // The frequency can not be changed if the device is not sleeping
+    pwm_driver_enable_sleep_mode(handler);
 
     // Frequency is limited from 24Hz to 1526 Hz
     uint8_t pre_scale = (uint8_t)((INTERNAL_OSC_CLOCK_FREQ / (4096U * frequency_hz)) - 1U);
@@ -115,6 +148,9 @@ void pwm_driver_update_frequency(pwm_driver_handler_S* handler, float frequency_
 
     HAL_I2C_Mem_Write(i2c_handler, device_addr_write, PRE_SCALE_ADDR, I2C_MEMADD_SIZE_8BIT, &pre_scale,
                       sizeof(pre_scale), HAL_MAX_DELAY);
+
+    // Enable the PWMs
+    pwm_driver_disable_sleep_mode(handler);
 }
 
 void pwm_driver_update_individual_patterns(pwm_driver_handler_S* handler, pwm_channel_E channel, float duty_cycle, float phase_shift)

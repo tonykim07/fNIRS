@@ -31,10 +31,50 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
         case IDLE:
             break; 
 
-        case USER_CONTROL: 
-            // emitter_control_vars.duty_cycle[0] = 0.10;
-            // emitter_control_vars.phase_shift[0] = 0.10;
-            // emitter_control_vars.pwm_frequency = 500;
+        case USER_CONTROL:
+#if DEBUG_PWM_DRIVER 
+            emitter_control_vars.duty_cycle[PWM_CHANNEL15] = 0.95;
+            emitter_control_vars.phase_shift[PWM_CHANNEL15] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL14] = 0.95;
+            emitter_control_vars.phase_shift[PWM_CHANNEL14] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL13] = 0.85;
+            emitter_control_vars.phase_shift[PWM_CHANNEL13] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL12] = 0.85;
+            emitter_control_vars.phase_shift[PWM_CHANNEL12] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL11] = 0.75;
+            emitter_control_vars.phase_shift[PWM_CHANNEL11] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL10] = 0.75;
+            emitter_control_vars.phase_shift[PWM_CHANNEL10] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL9] = 0.65;
+            emitter_control_vars.phase_shift[PWM_CHANNEL9] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL8] = 0.65;
+            emitter_control_vars.phase_shift[PWM_CHANNEL8] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL7] = 0.55;
+            emitter_control_vars.phase_shift[PWM_CHANNEL7] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL6] = 0.55;
+            emitter_control_vars.phase_shift[PWM_CHANNEL6] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL5] = 0.45;
+            emitter_control_vars.phase_shift[PWM_CHANNEL5] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL4] = 0.45;
+            emitter_control_vars.phase_shift[PWM_CHANNEL4] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = 0.35;
+            emitter_control_vars.phase_shift[PWM_CHANNEL3] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = 0.35;
+            emitter_control_vars.phase_shift[PWM_CHANNEL2] = 0.50;
+
+            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = 0.15;
+            emitter_control_vars.phase_shift[PWM_CHANNEL1] = 0.00;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = 0.15;
+            emitter_control_vars.phase_shift[PWM_CHANNEL0] = 0.50;
+
+            emitter_control_vars.pwm_frequency = 1000;
+#endif // DEBUG_PWM_DRIVER
             break;
 
         case SEQUENCER_CONTROL: 
