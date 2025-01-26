@@ -4,12 +4,37 @@ import numpy as np
 import nibabel as nib
 from scipy.spatial import cKDTree
 import logging
-import requests
+import socketio
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
+# Initialize the Socket.IO client
+sio = socketio.Client()
 
+# Connection events
+@sio.event
+def connect():
+    logging.info("Connected to the server.")
+
+@sio.event
+def disconnect():
+    logging.info("Disconnected from the server.")
+
+# Store activation data
+activation_data = None
+
+@sio.event
+def data_stream(data):
+    """Handle incoming data from the server."""
+    print("Received new data:", data)
+
+    global activation_data
+    activation_data = np.array(data['data'])
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
+
+# Set up static data and initialization functions
 def preload_static_data():
     """ 
     Preload static data.
@@ -29,8 +54,19 @@ def preload_static_data():
 
     return coords, x, y, z, i, j, k, aal_data, affine
 
-
 coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
+initial_sensor_positions = None
+
+def initialize_sensor_positions():
+    """
+    Initialize 20 random sensor positions. 
+    """
+    global initial_sensor_positions
+    if initial_sensor_positions is None:  # Only initialize once
+        # Randomly select 20 positions from the available coordinates
+        sensor_indices = np.random.choice(coords.shape[0], 20, replace=False)
+        initial_sensor_positions = coords[sensor_indices]
+    return initial_sensor_positions
 
 
 def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
@@ -122,19 +158,17 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     """
     Dynamically update the highlighted regions and sensor node activations.
     """
-    # Generate custom sensor points and activation data
-    custom_points_indices = np.random.choice(coords.shape[0], 15, replace=False)
-    custom_points = coords[custom_points_indices]
-    initial_activations = activation_data[custom_points_indices % activation_data.shape[0], frame]
+    # Initialize sensor positions once
+    sensor_positions = initialize_sensor_positions()
 
     # Update the sensor node color dynamically (trace 1: sensor nodes)
     fig.data[1].update(
-        x=custom_points[:, 0],
-        y=custom_points[:, 1],
-        z=custom_points[:, 2],
+        x=sensor_positions[:, 0],
+        y=sensor_positions[:, 1],
+        z=sensor_positions[:, 2],
         marker=dict(
             size=6,
-            color=initial_activations,
+            color=activation_data[:20, frame],  # Use only the first 20 activation values
             colorscale='RdBu_r',  # Ensure the same color scale
             cmin=0,
             cmax=5000  # Ensure the color range remains static
@@ -142,8 +176,14 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     )
 
     # Map nodes to regions and find regions to highlight
-    regions = map_points_to_regions(custom_points, affine, aal_data)
-    highlighted_regions = np.unique(regions[initial_activations > threshold])
+    regions = map_points_to_regions(sensor_positions, affine, aal_data)
+    
+    # Ensure the size of activation data and regions match
+    if activation_data.shape[0] < 20:
+        activation_data = np.pad(activation_data, ((0, 20 - activation_data.shape[0]), (0, 0)), mode='constant')
+
+    # Filter the regions based on activation levels
+    highlighted_regions = np.unique(regions[activation_data[:20, frame] > threshold])
 
     # Filter and update highlighted coordinates
     surface_coords = np.column_stack((x, y, z))
@@ -184,27 +224,22 @@ app.layout = html.Div([
     dcc.Graph(id='brain-mesh-graph', style={'display': 'inline-block'}, figure=static_fig),
     dcc.Graph(id='stacked-activation-graph', style={'display': 'inline-block'}),
     dcc.Store(id='streamed-data', data=None),
-    dcc.Interval(id='fetch-interval', interval=1000, n_intervals=0)
+    dcc.Interval(id='interval-component', interval=1*1000, n_intervals=0)  # Update every second
 ])
 
 
+# Update the dcc.Store component with new data
 @app.callback(
     Output('streamed-data', 'data'),
-    Input('fetch-interval', 'n_intervals')
+    Input('interval-component', 'n_intervals')
 )
-def fetch_real_time_data(n_intervals):
-    """ 
-    Fetch buffered data from the server.
-    """
-    try:
-        response = requests.get('http://localhost:5000/data')
-        if response.status_code == 200:
-            return {'data': response.json()['data']}
-    except Exception as e:
-        logging.error(f"Error fetching data from server: {e}")
+def update_store(n_intervals):
+    if activation_data is not None:
+        return {'data': activation_data.tolist()}
     return None
 
 
+# Update the graph with WebSocket data
 @app.callback(
     [Output('brain-mesh-graph', 'figure'),
      Output('stacked-activation-graph', 'figure')],
@@ -214,12 +249,11 @@ def update_graphs(data):
     """ 
     Update brain region highlights and activation plot.
     """
-    if not data or 'data' not in data:
+    if data is None or len(data['data']) == 0:
         return static_fig, go.Figure()
 
+    global activation_data
     activation_data = np.array(data['data'])
-    if activation_data.ndim == 1:
-        activation_data = activation_data.reshape(-1, 1)
 
     frame = activation_data.shape[1] - 1
     updated_brain_mesh_fig = update_highlighted_regions(static_fig, activation_data, frame)
@@ -246,4 +280,5 @@ def update_graphs(data):
 
 
 if __name__ == '__main__':
+    sio.connect('http://localhost:5000', transports=['websocket'])  # Connect to the WebSocket server
     app.run_server(debug=True, use_reloader=False, port=8050)
