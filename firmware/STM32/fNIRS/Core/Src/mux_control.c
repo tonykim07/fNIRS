@@ -153,6 +153,11 @@ void mux_control_init(I2C_HandleTypeDef* hi2c)
     mux_control_update_gpios(MUX_DISABLED);
 }
 
+mux_input_channel_E mux_control_get_curr_input_channel(void)
+{
+    return mux_control_vars.curr_input_channel;
+}
+
 void mux_control_enable_sequencer(void)
 {
     mux_control_vars.enabled = true;
@@ -195,6 +200,11 @@ void mux_control_sequencer(void)
                 break;
         }
 
+        if (mux_control_vars.mux_control_ovr)
+        {
+            next_channel = mux_control_vars.input_channel_ovr;
+        }
+
         mux_control_vars.timer = 0U;
         mux_control_update_gpios(next_channel);
         mux_control_vars.curr_input_channel = next_channel;
@@ -210,4 +220,20 @@ uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux)
 {
     return gpio_expander_debug_read_address(&gpio_expander_vars[mux], reg_addr);
 }
+
+void mux_control_enable_sequencer_override(void)
+{
+    mux_control_vars.mux_control_ovr = true;
+}
+
+void mux_control_disable_sequencer_override(void)
+{
+    mux_control_vars.mux_control_ovr = false;
+}
+
+void mux_control_set_input_channel_ovr(mux_input_channel_E channel)
+{
+    mux_control_vars.input_channel_ovr = channel;
+}
+
 #endif // DEBUG_GPIO_EXPANDER

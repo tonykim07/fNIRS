@@ -49,7 +49,7 @@ typedef struct
 typedef struct
 {
     const uint8_t device_address;
-    const uint8_t enable_line_gpio_pin;
+    const uint16_t enable_line_gpio_pin;
     GPIO_TypeDef* gpio_port;
     I2C_HandleTypeDef *i2c_handler;
 
@@ -66,6 +66,8 @@ typedef struct
 void pwm_driver_config(pwm_driver_handler_S* handler);
 void pwm_driver_assert_enable_line(pwm_driver_handler_S* handler);
 void pwm_driver_deassert_enable_line(pwm_driver_handler_S* handler);
+void pwm_driver_enable_sleep_mode(pwm_driver_handler_S* handler);
+void pwm_driver_disable_sleep_mode(pwm_driver_handler_S* handler);
 void pwm_driver_update_frequency(pwm_driver_handler_S* handler, float frequency_hz);
 void pwm_driver_update_individual_patterns(pwm_driver_handler_S* handler, pwm_channel_E channel, float duty_cycle, float phase_shift);
 void pwm_driver_update_all_patterns(pwm_driver_handler_S* handler, float duty_cycle, float phase_shift);
