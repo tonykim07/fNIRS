@@ -1,4 +1,4 @@
-from dash import Dash, html, dcc, Input, Output
+from dash import Dash, html, dcc, Input, Output, State
 import plotly.graph_objects as go
 import numpy as np
 import nibabel as nib
@@ -27,7 +27,7 @@ activation_data = None
 @sio.event
 def data_stream(data):
     """Handle incoming data from the server."""
-    print("Received new data:", data)
+    # print("Received new data:", data)
 
     global activation_data
     activation_data = np.array(data['data'])
@@ -112,14 +112,29 @@ def create_static_brain_mesh():
         showscale=False  # No colorbar for the mesh
     ))
     
-    # Add sensor nodes trace with an explicit legend entry
+    # Split sensor nodes into Emitters and Detectors
+    emitter_positions = initial_sensor_positions[:8]  # First 8 as Emitters
+    detector_positions = initial_sensor_positions[8:]  # Remaining 12 as Detectors
+    
+    # Add Emitters trace (Yellow)
     fig.add_trace(go.Scatter3d(
-        x=initial_sensor_positions[:, 0],  # Use initial sensor positions
-        y=initial_sensor_positions[:, 1],
-        z=initial_sensor_positions[:, 2],
+        x=emitter_positions[:, 0],
+        y=emitter_positions[:, 1],
+        z=emitter_positions[:, 2],
         mode='markers',
-        marker=dict(size=6, color='blue', colorscale='Reds', cmin=0, cmax=5000),
-        name='Sensor Nodes',  # Legend entry
+        marker=dict(size=6, color='yellow'),
+        name='Emitters',  # Legend entry
+        showlegend=True
+    ))
+
+    # Add Detectors trace (Blue)
+    fig.add_trace(go.Scatter3d(
+        x=detector_positions[:, 0],
+        y=detector_positions[:, 1],
+        z=detector_positions[:, 2],
+        mode='markers',
+        marker=dict(size=6, color='blue'),
+        name='Detectors',  # Legend entry
         showlegend=True
     ))
 
@@ -218,6 +233,40 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     return fig
 
 
+# Define the stacked activation plot function
+def create_stacked_activation_plot(activation_data, num_nodes, num_frames):
+    fig = go.Figure()
+    offset = 5000
+
+    # Reverse the loop order so node 19 is added first
+    for node in range(num_nodes - 1, -1, -1):
+        fig.add_trace(go.Scatter(
+            x=np.arange(num_frames),  # Full time range
+            y=activation_data[node, :] + node * offset,  # Maintain offset
+            mode='lines+markers',
+            name=f"Detector {node}",
+            line=dict(width=2),
+            marker=dict(size=6)
+        ))
+
+    fig.update_yaxes(
+        title_text="Activation Level (Stacked)",
+        tickmode="array",
+        tickvals=[node * offset + offset / 2 for node in range(num_nodes)],
+        ticktext=[f"Detector {node}" for node in range(num_nodes)]
+    )
+    fig.update_xaxes(title_text="Time (frames)")
+
+    fig.update_layout(
+        title="Detector Activation Levels Over Time",
+        height=800,
+        width=600,
+        showlegend=True
+    )
+
+    return fig
+
+
 # Build Dash app
 app = Dash(__name__)
 static_fig = create_static_brain_mesh()
@@ -230,54 +279,56 @@ app.layout = html.Div([
 ])
 
 
-# Update the dcc.Store component with new data
 @app.callback(
     Output('streamed-data', 'data'),
-    Input('interval-component', 'n_intervals')
+    Input('interval-component', 'n_intervals'),
+    State('streamed-data', 'data')
 )
-def update_store(n_intervals):
-    if activation_data is not None:
-        return {'data': activation_data.tolist()}
-    return None
+def update_store(n_intervals, current_data):
+    global activation_data  # Ensure we use the latest activation data
+
+    if activation_data is None:
+        return current_data  # Keep old data if nothing new
+
+    # Convert stored data to NumPy array (initialize if empty)
+    if current_data is None or 'data' not in current_data:
+        stored_array = np.empty((activation_data.shape[0], 0))  # Empty array with correct rows
+    else:
+        stored_array = np.array(current_data['data'])
+
+    # Ensure stored_array is 2D and matches node count
+    if stored_array.shape[0] != activation_data.shape[0]:
+        stored_array = np.empty((activation_data.shape[0], 0))  # Reset if mismatch
+
+    # Append the latest activation frame (column-wise)
+    new_frame = activation_data[:, -1].reshape(-1, 1)  # Ensure 2D shape
+    updated_data = np.hstack([stored_array, new_frame])  # Stack along time axis
+
+    return {'data': updated_data.tolist()}  # Convert back to list for JSON storage
 
 
-# Update the graph with WebSocket data
 @app.callback(
     [Output('brain-mesh-graph', 'figure'),
      Output('stacked-activation-graph', 'figure')],
     Input('streamed-data', 'data')
 )
 def update_graphs(data):
-    """ 
-    Update brain region highlights and activation plot.
-    """
-    if data is None or len(data['data']) == 0:
+    if data is None or 'data' not in data or len(data['data']) == 0:
         return static_fig, go.Figure()
 
-    global activation_data
+    # Convert stored data back into a NumPy array
     activation_data = np.array(data['data'])
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
 
-    frame = activation_data.shape[1] - 1
-    updated_brain_mesh_fig = update_highlighted_regions(static_fig, activation_data, frame)
+    num_nodes, num_frames = activation_data.shape
 
-    # Update activation plot
-    stacked_fig = go.Figure()
-    offset = 5000
-    for node, node_data in enumerate(activation_data):
-        stacked_fig.add_trace(go.Scatter(
-            x=np.arange(node_data.size),
-            y=node_data + node * offset,
-            mode='lines+markers',
-            name=f"Node {node}"
-        ))
-    stacked_fig.update_layout(
-        title="Node Activation Over Time",
-        xaxis_title="Time (Frames)",  # X-axis label
-        yaxis_title="Activation Level",  # Y-axis label
-        height=800,
-        width=600,
-        showlegend=True
-    )
+    # Update the brain mesh with the latest frame
+    updated_brain_mesh_fig = update_highlighted_regions(static_fig, activation_data, num_frames - 1)
+
+    # Create stacked activation plot with full history
+    stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
+
     return updated_brain_mesh_fig, stacked_fig
 
 
