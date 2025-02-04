@@ -27,7 +27,7 @@ activation_data = None
 @sio.event
 def data_stream(data):
     """Handle incoming data from the server."""
-    # print("Received new data:", data)
+    print("Received new data:", data)
 
     global activation_data
     activation_data = np.array(data['data'])
@@ -65,19 +65,6 @@ def initialize_sensor_positions(coords):
     return coords[sensor_indices]
 
 
-coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
-initial_sensor_positions = initialize_sensor_positions(coords)
-
-
-def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
-    """ 
-    Filter coordinates by proximity to the brain surface.
-    """
-    tree = cKDTree(surface_coords)
-    distances, _ = tree.query(coords)
-    return coords[distances <= threshold]
-
-
 def map_points_to_regions(points, affine, aal_data):
     """
     Map points to regions based on their voxel positions.
@@ -93,6 +80,20 @@ def map_points_to_regions(points, affine, aal_data):
         else:
             regions.append(-1)  # Mark as invalid
     return np.array(regions)
+
+
+coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
+initial_sensor_positions = initialize_sensor_positions(coords)
+regions = map_points_to_regions(initial_sensor_positions, affine, aal_data) # Map nodes to regions and find regions to highlight
+
+
+def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
+    """ 
+    Filter coordinates by proximity to the brain surface.
+    """
+    tree = cKDTree(surface_coords)
+    distances, _ = tree.query(coords)
+    return coords[distances <= threshold]
 
 
 def create_static_brain_mesh():
@@ -158,39 +159,46 @@ def create_static_brain_mesh():
 
 def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     """
-    Dynamically update the highlighted regions and sensor node activations.
+    Dynamically update the highlighted regions and sensor node activations with a gradient.
     """
-    # print(f'activation data: ${activation_data}')
-    
-    # Initialize sensor positions once
-    sensor_positions = initial_sensor_positions
 
-    # Map nodes to regions and find regions to highlight
-    regions = map_points_to_regions(sensor_positions, affine, aal_data)
-    
-    # Ensure the size of activation data and regions match
+    # print(f"activation data: {activation_data}")
     if activation_data.shape[0] < 20:
         activation_data = np.pad(activation_data, ((0, 20 - activation_data.shape[0]), (0, 0)), mode='constant')
 
-    # Filter the regions based on activation levels
-    highlighted_regions = np.unique(regions[activation_data[:20, frame] > threshold])
+    # Get activation levels for the regions
+    activation_levels = activation_data[:20, frame]
+    highlighted_regions = np.unique(regions[activation_levels > threshold])
 
-    # Filter and update highlighted coordinates
+    # Collect highlighted region coordinates
     surface_coords = np.column_stack((x, y, z))
     highlighted_coords = []
-    for region in highlighted_regions:
-        if region <= 0:  # Skip invalid regions
+    highlighted_values = []  # Store corresponding activation values
+
+    for idx, region in enumerate(highlighted_regions):
+        if region <= 0:
             continue
+
         region_mask = aal_data == region
         region_voxels = np.argwhere(region_mask)
         region_world_coords = nib.affines.apply_affine(affine, region_voxels)
-        filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
-        highlighted_coords.append(filtered_coords)
-    highlighted_coords = np.vstack(highlighted_coords) if highlighted_coords else np.empty((0, 3))
 
-    # Remove old highlighted regions and add updated ones
-    fig.data = [trace for trace in fig.data if trace.name != 'Highlighted Regions']
-    if highlighted_coords.size > 0:
+        filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
+        if filtered_coords.size > 0:
+            highlighted_coords.append(filtered_coords)
+            highlighted_values.extend([activation_levels[idx]] * len(filtered_coords))  # Assign colors
+
+    if highlighted_coords:
+        highlighted_coords = np.vstack(highlighted_coords)
+        highlighted_values = np.array(highlighted_values)
+
+        # Normalize activation values to [0, 1] for color mapping
+        min_activation = np.min(highlighted_values)
+        max_activation = np.max(highlighted_values)
+        normalized_values = (highlighted_values - min_activation) / (max_activation - min_activation + 1e-5)
+
+        # Remove old highlighted regions and add new ones with gradient
+        fig.data = [trace for trace in fig.data if trace.name != 'Highlighted Regions']
         fig.add_trace(go.Scatter3d(
             x=highlighted_coords[:, 0],
             y=highlighted_coords[:, 1],
@@ -198,11 +206,15 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
             mode='markers',
             marker=dict(
                 size=2,
-                color='red',
-                opacity=0.8
+                color=normalized_values,  # Use the normalized activation values
+                colorscale='Reds',  # Change to desired gradient
+                cmin=0,
+                cmax=1,
+                opacity=0.1
             ),
-            name='Highlighted Regions'  # Legend entry
+            name='Highlighted Regions'
         ))
+
     return fig
 
 
