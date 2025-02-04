@@ -21,15 +21,15 @@ def generate_data():
             activation_data = np.random.randint(0, 5000, size=(num_nodes,)).tolist()
             latest_data.append(activation_data)
         time.sleep(0.1)  # Simulate data generation at 10 Hz
-
+        
 def send_data():
     while True:
         with lock:
             if latest_data:
-                # print("Sending data:", latest_data)  # Debugging print
-                socketio.emit('data_stream', {'data': list(latest_data)})
+                # Send only the latest frame of data
+                latest_frame = latest_data[-1]
+                socketio.emit('data_stream', {'data': latest_frame})
         time.sleep(0.5)  # Stream data to the client every 500 ms
-
 
 # Run data generation and streaming threads
 threading.Thread(target=generate_data, daemon=True).start()

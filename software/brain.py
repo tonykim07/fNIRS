@@ -27,12 +27,13 @@ activation_data = None
 @sio.event
 def data_stream(data):
     """Handle incoming data from the server."""
-    print("Received new data:", data)
+    # print("Received new data:", data)
 
     global activation_data
     activation_data = np.array(data['data'])
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
+
 
 # Set up static data and initialization functions
 def preload_static_data():
@@ -54,19 +55,18 @@ def preload_static_data():
 
     return coords, x, y, z, i, j, k, aal_data, affine
 
-coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
-initial_sensor_positions = None
 
-def initialize_sensor_positions():
+def initialize_sensor_positions(coords):
     """
     Initialize 20 random sensor positions. 
     """
-    global initial_sensor_positions
-    if initial_sensor_positions is None:  # Only initialize once
-        # Randomly select 20 positions from the available coordinates
-        sensor_indices = np.random.choice(coords.shape[0], 20, replace=False)
-        initial_sensor_positions = coords[sensor_indices]
-    return initial_sensor_positions
+    # Randomly select 20 positions from the available coordinates
+    sensor_indices = np.random.choice(coords.shape[0], 20, replace=False)
+    return coords[sensor_indices]
+
+
+coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
+initial_sensor_positions = initialize_sensor_positions(coords)
 
 
 def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
@@ -113,9 +113,11 @@ def create_static_brain_mesh():
     
     # Add sensor nodes trace with an explicit legend entry
     fig.add_trace(go.Scatter3d(
-        x=[], y=[], z=[],  # Initially empty
+        x=initial_sensor_positions[:, 0],  # Use initial sensor positions
+        y=initial_sensor_positions[:, 1],
+        z=initial_sensor_positions[:, 2],
         mode='markers',
-        marker=dict(size=6, color=[], colorscale='RdBu_r', cmin=0, cmax=5000),
+        marker=dict(size=6, color='blue', colorscale='Reds', cmin=0, cmax=5000),
         name='Sensor Nodes',  # Legend entry
         showlegend=True
     ))
@@ -129,7 +131,7 @@ def create_static_brain_mesh():
         marker=dict(
             size=0,  # Invisible markers
             color=[0],  # Dummy value
-            colorscale='RdBu_r',
+            colorscale='Reds',
             cmin=0,
             cmax=5000,
             colorbar=dict(
@@ -158,22 +160,10 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     """
     Dynamically update the highlighted regions and sensor node activations.
     """
+    # print(f'activation data: ${activation_data}')
+    
     # Initialize sensor positions once
-    sensor_positions = initialize_sensor_positions()
-
-    # Update the sensor node color dynamically (trace 1: sensor nodes)
-    fig.data[1].update(
-        x=sensor_positions[:, 0],
-        y=sensor_positions[:, 1],
-        z=sensor_positions[:, 2],
-        marker=dict(
-            size=6,
-            color=activation_data[:20, frame],  # Use only the first 20 activation values
-            colorscale='RdBu_r',  # Ensure the same color scale
-            cmin=0,
-            cmax=5000  # Ensure the color range remains static
-        )
-    )
+    sensor_positions = initial_sensor_positions
 
     # Map nodes to regions and find regions to highlight
     regions = map_points_to_regions(sensor_positions, affine, aal_data)
