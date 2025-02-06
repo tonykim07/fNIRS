@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -25,6 +26,7 @@
 #include "mux_control.h"
 #include "emitter_control.h"
 #include "sensing.h"
+#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -55,8 +57,6 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
-
 /* USER CODE BEGIN PV */
 // float sensor_values[NUM_OF_SENSOR_MODULES] = { 0 };
 /* USER CODE END PV */
@@ -72,7 +72,6 @@ static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -121,7 +120,7 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI1_Init();
   MX_USART1_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   
   mux_control_init(&hi2c1);
@@ -140,6 +139,9 @@ int main(void)
   // For debugging: Use this code to manually override state of the muxes
   // mux_control_enable_sequencer_override();
   // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
+
+  // For USB Debugging
+  uint8_t *usb_data = "Hello World from USB CDC\n";
 
   /* USER CODE END 2 */
 
@@ -168,6 +170,9 @@ int main(void)
     //   sensor_values[i] = sensing_get_sensor_calibrated_value(i, MUX_INPUT_CHANNEL_ONE);
     // }
 
+    // Verify USB communication: USB_CDC Transmit Dummy Data
+    CDC_Transmit_FS(usb_data, strlen(usb_data));
+    HAL_Delay (1000);
 
   }
   /* USER CODE END 3 */
@@ -600,41 +605,6 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 6;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
 
 }
 
