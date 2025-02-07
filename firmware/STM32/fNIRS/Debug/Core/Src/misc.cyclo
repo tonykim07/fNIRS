@@ -1,0 +1,2 @@
+../Core/Src/misc.c:11:6:misc_toggle_led_periodic	4
+../Core/Src/misc.c:41:6:misc_write_to_uart_port_periodic	4

@@ -6,6 +6,9 @@
 /* DEFINES */
 // Note: lsb is read/write bit: R = 1, W = 0
 #define PWM_DRIVER_SLAVE_ADDR_READ (0b10001011)
+#define DEFAULT_DUTY_CYCLE (0.30)
+#define DEFAULT_PHASE_SHIFT (0.00)
+#define ZERO_DUTY_CYCLE (0.00)
 
 /* DATA STRUCTURES */
 
@@ -15,7 +18,7 @@ static pwm_driver_handler_S pwm_config = {
     .gpio_port              = PWM_CTRL_EN1_GPIO_Port,
     .i2c_handler            = NULL,
     .device_config_vars     = { 0 },
-    .pwm_frequency          = 1000,
+    .pwm_frequency          = 1500,
     .duty_cycle             = { 0 },
     .phase_shift            = { 0 },
 };
@@ -29,9 +32,72 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
     switch (state)
     {
         case IDLE:
+            break;
+
+        case DISABLED:
+            for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i++)
+            {
+                emitter_control_vars.duty_cycle[i] = ZERO_DUTY_CYCLE;
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
+            break; 
+
+        case DEFAULT_MODE:
+            // Odd numbered modules enable 940NM emitters
+            // Even numbered modules enable 660NM emitters
+
+            // Module 1
+            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL0] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL1] = DEFAULT_PHASE_SHIFT;
+
+            // Module 2
+            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL2] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL3] = DEFAULT_PHASE_SHIFT;
+
+            // Module 3
+            emitter_control_vars.duty_cycle[PWM_CHANNEL4] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL4] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL5] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL5] = DEFAULT_PHASE_SHIFT;
+
+            // Module 4
+            emitter_control_vars.duty_cycle[PWM_CHANNEL6] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL6] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL7] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL7] = DEFAULT_PHASE_SHIFT;
+            // Module 5
+            emitter_control_vars.duty_cycle[PWM_CHANNEL8] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL8] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL9] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL9] = DEFAULT_PHASE_SHIFT;
+
+            // Module 6
+            emitter_control_vars.duty_cycle[PWM_CHANNEL10] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL10] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL11] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL11] = DEFAULT_PHASE_SHIFT;
+
+            // Module 7
+            emitter_control_vars.duty_cycle[PWM_CHANNEL12] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL12] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL13] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL13] = DEFAULT_PHASE_SHIFT;
+
+            // Module 8
+            emitter_control_vars.duty_cycle[PWM_CHANNEL14] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL14] = DEFAULT_PHASE_SHIFT;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL15] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.phase_shift[PWM_CHANNEL15] = DEFAULT_PHASE_SHIFT;
+
+            emitter_control_vars.pwm_frequency = 1500;
             break; 
 
         case USER_CONTROL:
+            // TODO: update values with user input data
 #if DEBUG_PWM_DRIVER 
             emitter_control_vars.duty_cycle[PWM_CHANNEL15] = 0.95;
             emitter_control_vars.phase_shift[PWM_CHANNEL15] = 0.00;
@@ -73,17 +139,29 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             emitter_control_vars.duty_cycle[PWM_CHANNEL0] = 0.15;
             emitter_control_vars.phase_shift[PWM_CHANNEL0] = 0.50;
 
-            emitter_control_vars.pwm_frequency = 1000;
+            emitter_control_vars.pwm_frequency = 1500;
 #endif // DEBUG_PWM_DRIVER
             break;
 
-        case SEQUENCER_CONTROL: 
+        case CYCLING: 
             break;
 
-        case FULLY_ENABLED:
+        case FULLY_ENABLED_940NM:
+            // Even channels correspond to 940NM emitter
+            for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i+=2)
+            {
+                emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE;
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
             break;
 
-        case FULLY_DISABLED:
+        case FULLY_ENABLED_660NM:
+            // Odd channels correspond to 660NM emitter
+            for (pwm_channel_E i = (pwm_channel_E)1; i < NUM_OF_PWM_CHANNELS; i+=2)
+            {
+                emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE; 
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
             break;
 
         default: 
@@ -147,40 +225,38 @@ void emitter_control_state_machine(void)
     emitter_control_state_E next_state = curr_state;
 
     // update timer threshold value to determine the frequency of the state machine
-    if (emitter_control_vars.timer > 5U)
+    if (emitter_control_vars.timer > 10U)
     {
         switch (curr_state)
         {
+            case DISABLED: 
+                if (emitter_control_vars.emitter_control_enabled)
+                {
+                    next_state = IDLE;
+                }
+                break;
+
             case IDLE:
-                if (emitter_control_vars.requested_state != IDLE)
+                if (emitter_control_vars.emitter_control_enabled == false)
+                {
+                    next_state = DISABLED;
+                }
+                else if (emitter_control_vars.requested_state != IDLE)
                 {
                     next_state = emitter_control_vars.requested_state;
                 }
                 break;
-
+            
+            case DEFAULT_MODE: 
             case USER_CONTROL: 
+            case CYCLING:
+            case FULLY_ENABLED_940NM:
+            case FULLY_ENABLED_660NM:
                 if (emitter_control_vars.emitter_control_enabled == false)
                 {
-                    next_state = FULLY_DISABLED;
+                    next_state = DISABLED;
                 }
-                break;
-
-            case SEQUENCER_CONTROL: 
-                if (emitter_control_vars.emitter_control_enabled == false)
-                {
-                    next_state = FULLY_DISABLED;
-                }
-                break;
-
-            case FULLY_ENABLED:
-                if (emitter_control_vars.emitter_control_enabled == false)
-                {
-                    next_state = FULLY_DISABLED;
-                }
-                break;
-
-            case FULLY_DISABLED:
-                if (emitter_control_vars.emitter_control_enabled)
+                else if (emitter_control_vars.requested_state != curr_state)
                 {
                     next_state = IDLE;
                 }
