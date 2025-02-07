@@ -12,11 +12,13 @@
 
 typedef enum
 {
-    IDLE = 0U, 
+    DISABLED = 0U,
+    IDLE,
+    DEFAULT_MODE,
     USER_CONTROL, 
-    SEQUENCER_CONTROL,
-    FULLY_ENABLED, 
-    FULLY_DISABLED,
+    CYCLING,
+    FULLY_ENABLED_940NM,
+    FULLY_ENABLED_660NM, 
 
     NUM_OF_EMIITER_CONTROL_STATES,
 } emitter_control_state_E;

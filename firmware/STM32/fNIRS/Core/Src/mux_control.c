@@ -168,7 +168,7 @@ void mux_control_sequencer(void)
     mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
 
     // TODO: timer threshold to be adjusted based on desired frequency
-    if (mux_control_vars.timer > 5U)
+    if (mux_control_vars.timer > 10U)
     {
         switch (next_channel)
         {

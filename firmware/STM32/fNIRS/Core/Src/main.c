@@ -128,18 +128,17 @@ int main(void)
   emitter_control_init(&hi2c2);
   sensing_init(&hadc1, &hadc2, &hadc3);
 
-  // TODO: can add logic around enabling
+  // TODO: can add logic around enabling if needed
   mux_control_enable_sequencer();
   emitter_control_enable();
+  emitter_control_request_operating_mode(DEFAULT_MODE);
 
-  // For debugging: Use this code to enable PWMs (see emitter_control.c)
-  // emitter_control_request_operating_mode(USER_CONTROL);
   // For debugging: Use this code to manually override state of the muxes
   // mux_control_enable_sequencer_override();
   // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
 
   // For USB Debugging
-  uint8_t *usb_data = "Hello World from USB CDC\n";
+  // uint8_t *usb_data = "Hello World from USB CDC\n";
 
   /* USER CODE END 2 */
 
