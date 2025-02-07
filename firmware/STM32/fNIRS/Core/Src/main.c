@@ -27,6 +27,7 @@
 #include "emitter_control.h"
 #include "sensing.h"
 #include "usbd_cdc_if.h"
+#include "misc.h"
 
 /* USER CODE END Includes */
 
@@ -133,9 +134,6 @@ int main(void)
 
   // For debugging: Use this code to enable PWMs (see emitter_control.c)
   // emitter_control_request_operating_mode(USER_CONTROL);
-
-  const char* message = "Hello world!\r\n";
-
   // For debugging: Use this code to manually override state of the muxes
   // mux_control_enable_sequencer_override();
   // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
@@ -152,14 +150,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-    // TODO: move led toggling and uart to different file
-	  HAL_Delay(200);
-	  HAL_GPIO_TogglePin(MCU_TEST_LED_GPIO_Port, MCU_TEST_LED_Pin);
-	  HAL_Delay(200);
-	  HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
-    HAL_Delay(200);
-
+    misc_toggle_led_periodic(3);
+    misc_write_to_uart_port_periodic(&huart1, "fNIRS ECU is here\n", 1);
     mux_control_sequencer();
     emitter_control_state_machine();
     sensing_update_all_sensor_channels();
@@ -171,8 +163,8 @@ int main(void)
     // }
 
     // Verify USB communication: USB_CDC Transmit Dummy Data
-    CDC_Transmit_FS(usb_data, strlen(usb_data));
-    HAL_Delay (1000);
+    // CDC_Transmit_FS(usb_data, strlen(usb_data));
+    // HAL_Delay (1000);
 
   }
   /* USER CODE END 3 */

@@ -4,7 +4,7 @@
 
 /* INCLUDES */
 #include "main.h"
-#include "stdbool.h"
+#include <stdbool.h>
 #include "gpio_expander.h"
 
 /* DEFINES */
