@@ -66,3 +66,4 @@ void misc_write_to_uart_port_periodic(UART_HandleTypeDef *huart, const char* mes
         update_tick_start = false;
     }
 }
+
