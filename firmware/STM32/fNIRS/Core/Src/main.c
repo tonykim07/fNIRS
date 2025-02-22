@@ -78,7 +78,7 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint8_t usb_receive_buffer[64];
 /* USER CODE END 0 */
 
 /**
@@ -141,7 +141,7 @@ int main(void)
   // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
 
   // For USB Debugging
-  uint8_t *usb_data = "Hello World from USB CDC\n";
+  uint8_t *transmit_usb_data = "Hello World from USB CDC\n";
 
   /* USER CODE END 2 */
 
@@ -170,8 +170,9 @@ int main(void)
     //   sensor_values[i] = sensing_get_sensor_calibrated_value(i, MUX_INPUT_CHANNEL_ONE);
     // }
 
-    // Verify USB communication: USB_CDC Transmit Dummy Data
-    CDC_Transmit_FS(usb_data, strlen(usb_data));
+    // Verify USB communication: USB_CDC Transmit Dummy Data and Received Data
+    CDC_Transmit_FS(transmit_usb_data, strlen(transmit_usb_data));
+    CDC_Transmit_FS(usb_receive_buffer, strlen((char*)usb_receive_buffer));
     HAL_Delay (1000);
 
   }
