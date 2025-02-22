@@ -152,15 +152,87 @@ GenerateClassCluster=0
 DocumentUniqueId=GAHYLIPW
 
 [GeneratedDocument1]
-DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModule.html
+DocumentPath=Project Outputs for Free Documents\BOM\Bill of Materials-SensorModulePCB.csv
 DItemRevisionGUID=
 
 [GeneratedDocument2]
-DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModulePCB.html
+DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModule.html
 DItemRevisionGUID=
 
 [GeneratedDocument3]
+DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModulePCB.html
+DItemRevisionGUID=
+
+[GeneratedDocument4]
 DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModulePCB_update.html
+DItemRevisionGUID=
+
+[GeneratedDocument5]
+DocumentPath=Project Outputs for Free Documents\Pick Place\Pick Place for SensorModulePCB.csv
+DItemRevisionGUID=
+
+[GeneratedDocument6]
+DocumentPath=Project Outputs for Free Documents\NC Drill\SensorModulePCB.DRR
+DItemRevisionGUID=
+
+[GeneratedDocument7]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.EXTREP
+DItemRevisionGUID=
+
+[GeneratedDocument8]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GBL
+DItemRevisionGUID=
+
+[GeneratedDocument9]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GBO
+DItemRevisionGUID=
+
+[GeneratedDocument10]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GBP
+DItemRevisionGUID=
+
+[GeneratedDocument11]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GBS
+DItemRevisionGUID=
+
+[GeneratedDocument12]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GKO
+DItemRevisionGUID=
+
+[GeneratedDocument13]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GM
+DItemRevisionGUID=
+
+[GeneratedDocument14]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GM1
+DItemRevisionGUID=
+
+[GeneratedDocument15]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GTL
+DItemRevisionGUID=
+
+[GeneratedDocument16]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GTO
+DItemRevisionGUID=
+
+[GeneratedDocument17]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GTP
+DItemRevisionGUID=
+
+[GeneratedDocument18]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.GTS
+DItemRevisionGUID=
+
+[GeneratedDocument19]
+DocumentPath=Project Outputs for Free Documents\NC Drill\SensorModulePCB.LDP
+DItemRevisionGUID=
+
+[GeneratedDocument20]
+DocumentPath=Project Outputs for Free Documents\Gerber\SensorModulePCB.REP
+DItemRevisionGUID=
+
+[GeneratedDocument21]
+DocumentPath=Project Outputs for Free Documents\NC Drill\SensorModulePCB.TXT
 DItemRevisionGUID=
 
 [Configuration1]
