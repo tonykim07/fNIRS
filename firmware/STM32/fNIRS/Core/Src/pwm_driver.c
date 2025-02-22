@@ -177,8 +177,8 @@ void pwm_driver_update_individual_patterns(pwm_driver_handler_S* handler, pwm_ch
     handler->phase_shift[channel] = phase_shift;
 
     // PWM count registers are 12bits, period is 4096 counts
-    const uint16_t phase_counts = (uint16_t)((1U << 12U) * phase_shift);
-    const uint16_t duty_counts = (uint16_t)((1U << 12U) * duty_cycle);
+    const uint16_t phase_counts = (uint16_t)(((1U << 12U) * phase_shift) - 1U);
+    const uint16_t duty_counts = (uint16_t)(((1U << 12U) * duty_cycle) - 1U);
     
     uint16_t rising_edge = phase_counts;
     uint16_t falling_edge = phase_counts + duty_counts;

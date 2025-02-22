@@ -6,7 +6,7 @@
 /* DEFINES */
 // Note: lsb is read/write bit: R = 1, W = 0
 #define PWM_DRIVER_SLAVE_ADDR_READ (0b10001011)
-#define DEFAULT_DUTY_CYCLE (0.30)
+#define DEFAULT_DUTY_CYCLE (1.00)
 #define DEFAULT_PHASE_SHIFT (0.00)
 #define ZERO_DUTY_CYCLE (0.00)
 
