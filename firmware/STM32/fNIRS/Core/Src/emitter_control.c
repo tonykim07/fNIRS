@@ -2,6 +2,7 @@
 /* INCLUDES */
 #include "emitter_control.h"
 #include "pwm_driver.h"
+#include "serial_interface.h"
 
 /* DEFINES */
 // Note: lsb is read/write bit: R = 1, W = 0
@@ -97,50 +98,12 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             break; 
 
         case USER_CONTROL:
-            // TODO: update values with user input data
-#if DEBUG_PWM_DRIVER 
-            emitter_control_vars.duty_cycle[PWM_CHANNEL15] = 0.95;
-            emitter_control_vars.phase_shift[PWM_CHANNEL15] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL14] = 0.95;
-            emitter_control_vars.phase_shift[PWM_CHANNEL14] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL13] = 0.85;
-            emitter_control_vars.phase_shift[PWM_CHANNEL13] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL12] = 0.85;
-            emitter_control_vars.phase_shift[PWM_CHANNEL12] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL11] = 0.75;
-            emitter_control_vars.phase_shift[PWM_CHANNEL11] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL10] = 0.75;
-            emitter_control_vars.phase_shift[PWM_CHANNEL10] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL9] = 0.65;
-            emitter_control_vars.phase_shift[PWM_CHANNEL9] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL8] = 0.65;
-            emitter_control_vars.phase_shift[PWM_CHANNEL8] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL7] = 0.55;
-            emitter_control_vars.phase_shift[PWM_CHANNEL7] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL6] = 0.55;
-            emitter_control_vars.phase_shift[PWM_CHANNEL6] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL5] = 0.45;
-            emitter_control_vars.phase_shift[PWM_CHANNEL5] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL4] = 0.45;
-            emitter_control_vars.phase_shift[PWM_CHANNEL4] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = 0.35;
-            emitter_control_vars.phase_shift[PWM_CHANNEL3] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = 0.35;
-            emitter_control_vars.phase_shift[PWM_CHANNEL2] = 0.50;
-
-            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = 0.15;
-            emitter_control_vars.phase_shift[PWM_CHANNEL1] = 0.00;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = 0.15;
-            emitter_control_vars.phase_shift[PWM_CHANNEL0] = 0.50;
-
+            uint16_t override_data = serial_interface_rx_get_user_emitter_controls();
+            for (pwm_channel_E i = (pwm_channel_E)0U; i < NUM_OF_PWM_CHANNELS; i++)
+            {
+                emitter_control_vars.duty_cycle[i] = (float)((override_data >> i) & 0x1);
+            }
             emitter_control_vars.pwm_frequency = 1500;
-#endif // DEBUG_PWM_DRIVER
             break;
 
         case CYCLING: 
