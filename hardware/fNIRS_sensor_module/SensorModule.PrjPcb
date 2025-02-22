@@ -149,10 +149,18 @@ ClassGenCCAutoRoomEnabled=0
 ClassGenNCAutoScope=None
 DItemRevisionGUID=
 GenerateClassCluster=0
-DocumentUniqueId=HDFRUNAC
+DocumentUniqueId=GAHYLIPW
 
 [GeneratedDocument1]
 DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModule.html
+DItemRevisionGUID=
+
+[GeneratedDocument2]
+DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModulePCB.html
+DItemRevisionGUID=
+
+[GeneratedDocument3]
+DocumentPath=Project Outputs for SensorModule\Design Rule Check - SensorModulePCB_update.html
 DItemRevisionGUID=
 
 [Configuration1]
