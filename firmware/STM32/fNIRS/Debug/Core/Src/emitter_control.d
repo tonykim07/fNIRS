@@ -37,7 +37,8 @@ Core/Src/emitter_control.o: ../Core/Src/emitter_control.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
  ../Core/Inc/pwm_driver.h ../Core/Inc/pwm_driver.h \
- ../Core/Inc/serial_interface.h ../Core/Inc/emitter_control.h
+ ../Core/Inc/serial_interface.h ../Core/Inc/emitter_control.h \
+ ../Core/Inc/mux_control.h ../Core/Inc/gpio_expander.h
 ../Core/Inc/emitter_control.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
@@ -80,3 +81,5 @@ Core/Src/emitter_control.o: ../Core/Src/emitter_control.c \
 ../Core/Inc/pwm_driver.h:
 ../Core/Inc/serial_interface.h:
 ../Core/Inc/emitter_control.h:
+../Core/Inc/mux_control.h:
+../Core/Inc/gpio_expander.h:

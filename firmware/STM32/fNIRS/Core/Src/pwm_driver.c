@@ -193,6 +193,12 @@ void pwm_driver_update_individual_patterns(pwm_driver_handler_S* handler, pwm_ch
     uint8_t led_off_l = (uint8_t)(falling_edge & 0xFF);
     uint8_t led_off_h = (uint8_t)((falling_edge >> 8U) & 0xF);
 
+    if (duty_cycle == 1)
+    {
+        led_on_h = 0x1F;
+        led_off_h = 0x0;
+    }
+
     I2C_HandleTypeDef *i2c_handler = handler->i2c_handler;
     const uint8_t device_addr_write = handler->device_address & ~(0x1);
 

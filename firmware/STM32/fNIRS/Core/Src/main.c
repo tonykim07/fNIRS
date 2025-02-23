@@ -129,17 +129,12 @@ int main(void)
   emitter_control_init(&hi2c2);
   sensing_init(&hadc1, &hadc2, &hadc3);
 
-  // TODO: can add logic around enabling if needed
   mux_control_enable_sequencer();
   emitter_control_enable();
   emitter_control_request_operating_mode(DEFAULT_MODE);
 
-  // For debugging: Use this code to manually override state of the muxes
-  // mux_control_enable_sequencer_override();
-  // mux_control_set_input_channel_ovr(MUX_INPUT_CHANNEL_ONE);
-
   // For USB Debugging
-  uint8_t *transmit_usb_data = "Hello World from USB CDC\n";
+//  uint8_t *transmit_usb_data = "Hello World from USB CDC\n";
 
   /* USER CODE END 2 */
 
@@ -157,7 +152,7 @@ int main(void)
     sensing_update_all_sensor_channels();
     serial_interface_rx_parse_data(usb_receive_buffer);
 
-    if (serial_interface_rx_get_user_override_enable())
+    if (serial_interface_rx_get_user_emitter_control_override_enable())
     {
       emitter_control_state_E override_state = serial_interface_rx_get_emitter_control_state();
       emitter_control_request_operating_mode(override_state);
@@ -167,16 +162,26 @@ int main(void)
       emitter_control_request_operating_mode(DEFAULT_MODE);
     }
 
-    // For debugging: Use this code to directly access sensor values, uncomment global array defined above 
+    if (serial_interface_rx_get_user_mux_control_override_enable())
+    {
+        mux_control_enable_sequencer_override();
+        mux_control_set_input_channel_ovr(serial_interface_rx_get_user_mux_control_state());
+    }
+    else
+    {
+        mux_control_disable_sequencer_override();
+    }
+
+      // For debugging: Use this code to directly access sensor values, uncomment global array defined above
 //    for (sensor_module_E i = (sensor_module_E)0; i < NUM_OF_SENSOR_MODULES; i++)
 //    {
 //      sensor_values[i] = sensing_get_sensor_calibrated_value(i, MUX_INPUT_CHANNEL_ONE);
 //    }
 
     // Verify USB communication: USB_CDC Transmit Dummy Data and Received Data
-    CDC_Transmit_FS(transmit_usb_data, strlen(transmit_usb_data));
-    CDC_Transmit_FS(usb_receive_buffer, strlen((char*)usb_receive_buffer));
-    HAL_Delay(10);
+    // CDC_Transmit_FS(transmit_usb_data, strlen(transmit_usb_data));
+    // CDC_Transmit_FS(usb_receive_buffer, strlen((char*)usb_receive_buffer));
+    // HAL_Delay(500);
 
   }
   /* USER CODE END 3 */
