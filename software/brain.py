@@ -1,3 +1,4 @@
+import dash
 from dash import Dash, html, dcc, Input, Output, State
 import plotly.graph_objects as go
 import numpy as np
@@ -86,6 +87,9 @@ coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
 initial_sensor_positions = initialize_sensor_positions(coords)
 regions = map_points_to_regions(initial_sensor_positions, affine, aal_data) # Map nodes to regions and find regions to highlight
 
+# Initialize emitter states (all ON by default)
+emitter_states = [True] * 8
+
 
 def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     """ 
@@ -96,7 +100,7 @@ def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     return coords[distances <= threshold]
 
 
-def create_static_brain_mesh():
+def create_static_brain_mesh(emitter_states):
     """
     Create the static brain mesh plot with a hidden trace for the colorbar.
     """
@@ -116,13 +120,15 @@ def create_static_brain_mesh():
     emitter_positions = initial_sensor_positions[:8]  # First 8 as Emitters
     detector_positions = initial_sensor_positions[8:]  # Remaining 12 as Detectors
     
+    # Add Emitters trace (Yellow or Gray based on state)
+    emitter_colors = ['yellow' if state else 'gray' for state in emitter_states]
     # Add Emitters trace (Yellow)
     fig.add_trace(go.Scatter3d(
         x=emitter_positions[:, 0],
         y=emitter_positions[:, 1],
         z=emitter_positions[:, 2],
         mode='markers',
-        marker=dict(size=6, color='yellow'),
+        marker=dict(size=6, color=emitter_colors),
         name='Emitters',  # Legend entry
         showlegend=True
     ))
@@ -269,14 +275,47 @@ def create_stacked_activation_plot(activation_data, num_nodes, num_frames):
 
 # Build Dash app
 app = Dash(__name__)
-static_fig = create_static_brain_mesh()
+static_fig = create_static_brain_mesh(emitter_states)
+
 
 app.layout = html.Div([
+    html.Div([
+        html.Button(f'Emitter {i+1}', id=f'btn-{i}', n_clicks=0, style={'margin': '5px', 'backgroundColor': 'yellow'}) for i in range(8)
+    ]),
     dcc.Graph(id='brain-mesh-graph', style={'display': 'inline-block'}, figure=static_fig),
     dcc.Graph(id='stacked-activation-graph', style={'display': 'inline-block'}),
+    dcc.Store(id='emitter-states', data=emitter_states),
     dcc.Store(id='streamed-data', data=None),
     dcc.Interval(id='interval-component', interval=1*1000, n_intervals=0)  # Update every second
 ])
+
+
+@app.callback(
+    Output('emitter-states', 'data'),
+    [Input(f'btn-{i}', 'n_clicks') for i in range(8)],
+    State('emitter-states', 'data')
+)
+def update_emitter_states(*args):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return args[-1]
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    index = int(button_id.split('-')[1])
+    states = args[-1]
+    states[index] = not states[index]
+    return states
+
+
+@app.callback(
+    [Output(f'btn-{i}', 'style') for i in range(8)],
+    Input('emitter-states', 'data')
+)
+def update_button_styles(emitter_states):
+    styles = []
+    for state in emitter_states:
+        color = 'yellow' if state else 'gray'
+        styles.append({'margin': '5px', 'backgroundColor': color})
+    return styles
 
 
 @app.callback(
@@ -307,14 +346,16 @@ def update_store(n_intervals, current_data):
     return {'data': updated_data.tolist()}  # Convert back to list for JSON storage
 
 
+
 @app.callback(
     [Output('brain-mesh-graph', 'figure'),
      Output('stacked-activation-graph', 'figure')],
-    Input('streamed-data', 'data')
+    [Input('streamed-data', 'data'),
+     Input('emitter-states', 'data')]
 )
-def update_graphs(data):
+def update_graphs(data, emitter_states):
     if data is None or 'data' not in data or len(data['data']) == 0:
-        return static_fig, go.Figure()
+        return create_static_brain_mesh(emitter_states), go.Figure()
 
     # Convert stored data back into a NumPy array
     activation_data = np.array(data['data'])
@@ -324,7 +365,7 @@ def update_graphs(data):
     num_nodes, num_frames = activation_data.shape
 
     # Update the brain mesh with the latest frame
-    updated_brain_mesh_fig = update_highlighted_regions(static_fig, activation_data, num_frames - 1)
+    updated_brain_mesh_fig = update_highlighted_regions(create_static_brain_mesh(emitter_states), activation_data, num_frames - 1)
 
     # Create stacked activation plot with full history
     stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
