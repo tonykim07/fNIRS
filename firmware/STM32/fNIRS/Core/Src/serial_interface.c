@@ -48,3 +48,8 @@ mux_input_channel_E serial_interface_rx_get_user_mux_control_state(void)
 {
     return serial_interface_rx_vars.mux_control_state;
 }
+
+void serial_interface_tx_send_sensor_data(void)
+{
+    
+}
