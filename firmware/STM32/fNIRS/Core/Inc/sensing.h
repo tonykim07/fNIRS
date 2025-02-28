@@ -51,22 +51,33 @@ typedef struct
 
     uint8_t sampling_timer;
 
-    float sensor_raw_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
-    float sensor_calibrated_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
-    float sensor_scale[NUM_OF_SENSOR_MODULES];
-    float sensor_offset[NUM_OF_SENSOR_MODULES];
+    uint16_t sensor_raw_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
+    uint16_t sensor_calibrated_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
+    uint16_t sensor_scale[NUM_OF_SENSOR_MODULES];
+    uint16_t sensor_offset[NUM_OF_SENSOR_MODULES];
 
-    float temp_sensor_raw_adc_value[NUM_OF_TEMPSENSORS];
+    uint16_t temp_sensor_raw_adc_value[NUM_OF_TEMPSENSORS];
     float temperature[NUM_OF_TEMPSENSORS];
 
 } fnirs_sense_vars_S;
 
+
+typedef struct {
+    float sensor_value;  // Sensor reading
+    uint8_t emitter_status;  // Active emitter (1=940nm, 2=660nm, 0=OFF)
+} SensorEmitterData;
 
 /* FUNCTION DECLARATIONS */
 void sensing_init(ADC_HandleTypeDef *hadc1, ADC_HandleTypeDef *hadc2, ADC_HandleTypeDef *hadc3);
 float sensing_get_sensor_calibrated_value(sensor_module_E sensor_module, mux_input_channel_E detector);
 float sensing_get_temperature_reading(temp_sensor_E sensor);
 void sensing_update_all_temperature_readings(void);
+//void sensing_update_all_sensor_channels(void);
+void update_all_sensors_sendUSB(void); 
+void sendUSB_sensor_emitter_data(SensorEmitterData *sensor_data);
+void send_single_raw_sensor_valueUSB(void);
+void send_uint16_over_usb(uint16_t value);
 void sensing_update_all_sensor_channels(void);
+void send_all_sensor_valuesUSB(void);
 
 #endif /* INC_SENSING_H_ */

@@ -24,6 +24,7 @@ static pwm_driver_handler_S pwm_config = {
     .phase_shift            = { 0 },
 };
 
+// extern emitter_control_vars_S emitter_control_vars = { 0 };
 static emitter_control_vars_S emitter_control_vars = { 0 };
 
 /* FUNCTION DEFINITIONS */
@@ -48,15 +49,15 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             // Even numbered modules enable 660NM emitters
 
             // Module 1
-            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE; // 940nm ON
             emitter_control_vars.phase_shift[PWM_CHANNEL0] = DEFAULT_PHASE_SHIFT;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE; // 660nm OFF
             emitter_control_vars.phase_shift[PWM_CHANNEL1] = DEFAULT_PHASE_SHIFT;
 
             // Module 2
-            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE; // 940nm OFF
             emitter_control_vars.phase_shift[PWM_CHANNEL2] = DEFAULT_PHASE_SHIFT;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;    // 660nm ON
             emitter_control_vars.phase_shift[PWM_CHANNEL3] = DEFAULT_PHASE_SHIFT;
 
             // Module 3
@@ -238,6 +239,18 @@ void emitter_control_state_machine(void)
         emitter_control_vars.timer++;
     }
 }
+
+uint8_t get_active_emitter(void)
+{
+    for (pwm_channel_E j = 0; j < NUM_OF_PWM_CHANNELS; j++)
+    {
+        if (emitter_control_vars.duty_cycle[j] > 0)  // Emitter is ON
+        {
+            return (j % 2 == 0) ? 1 : 2;  // Even = 940nm, Odd = 660nm
+        }
+    }
+    return 0;  // No emitter is active
+} // returns 1 if 940, 2 if 660, 0 if none
 
 #if DEBUG_PWM_DRIVER
 uint8_t test_pwm_driver_read_addr(uint8_t reg_addr)

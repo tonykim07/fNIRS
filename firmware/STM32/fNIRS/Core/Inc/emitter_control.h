@@ -44,6 +44,7 @@ void emitter_control_request_operating_mode(emitter_control_state_E state);
 void emitter_control_update_frequency(float frequency);
 void emitter_control_update_duty_and_phase(pwm_channel_E channel, float duty_cycle, float phase_shift);
 void emitter_control_state_machine(void);
+uint8_t get_active_emitter(void);
 
 #if DEBUG_PWM_DRIVER
 uint8_t test_pwm_driver_read_addr(uint8_t reg_addr);
