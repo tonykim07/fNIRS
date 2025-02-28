@@ -6,5 +6,5 @@
 ../Core/Src/emitter_control.c:212:6:emitter_control_update_frequency	1
 ../Core/Src/emitter_control.c:217:6:emitter_control_update_duty_and_phase	1
 ../Core/Src/emitter_control.c:223:6:emitter_control_state_machine	11
-../Core/Src/emitter_control.c:280:9:get_active_emitter	4
-../Core/Src/emitter_control.c:293:9:test_pwm_driver_read_addr	1
+../Core/Src/emitter_control.c:280:6:emitter_control_is_emitter_active	1
+../Core/Src/emitter_control.c:286:9:test_pwm_driver_read_addr	1

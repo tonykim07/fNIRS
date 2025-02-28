@@ -240,17 +240,10 @@ void emitter_control_state_machine(void)
     }
 }
 
-uint8_t get_active_emitter(void)
+bool emitter_control_is_emitter_active(pwm_channel_E channel)
 {
-    for (pwm_channel_E j = 0; j < NUM_OF_PWM_CHANNELS; j++)
-    {
-        if (emitter_control_vars.duty_cycle[j] > 0)  // Emitter is ON
-        {
-            return (j % 2 == 0) ? 1 : 2;  // Even = 940nm, Odd = 660nm
-        }
-    }
-    return 0;  // No emitter is active
-} // returns 1 if 940, 2 if 660, 0 if none
+    return (emitter_control_vars.duty_cycle[channel] > 0);
+}
 
 #if DEBUG_PWM_DRIVER
 uint8_t test_pwm_driver_read_addr(uint8_t reg_addr)
