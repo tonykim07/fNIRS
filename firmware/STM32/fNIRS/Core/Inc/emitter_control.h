@@ -38,6 +38,7 @@ typedef struct
 
 /* FUNCTION DECLARATIONS */
 void emitter_control_init(I2C_HandleTypeDef* hi2c);
+bool emitter_control_is_emitter_active(pwm_channel_E channel);
 void emitter_control_enable(void);
 void emitter_control_disable(void);
 void emitter_control_request_operating_mode(emitter_control_state_E state);
