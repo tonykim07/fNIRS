@@ -1,6 +1,7 @@
 
 /* INCLUDES */
 #include "serial_interface.h"
+#include "sensing.h"
 
 /* DEFINES */
 
@@ -51,5 +52,5 @@ mux_input_channel_E serial_interface_rx_get_user_mux_control_state(void)
 
 void serial_interface_tx_send_sensor_data(void)
 {
-    
+
 }

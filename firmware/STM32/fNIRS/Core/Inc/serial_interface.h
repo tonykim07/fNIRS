@@ -25,7 +25,8 @@ typedef enum
 
 typedef enum
 {
-    SENSOR_CHANNEL_1_H = 0U, // Upper bits for sensor mux1 reading
+    PACKET_IDENTIFIER = 0U,
+    SENSOR_CHANNEL_1_H,      // Upper bits for sensor mux1 reading
     SENSOR_CHANNEL_1_L,      // Lower bits for sensor mux1 reading
     SENSOR_CHANNEL_2_H,      // Upper bits for sensor mux2 reading
     SENSOR_CHANNEL_2_L,      // Lower bits for sensor mux2 reading
