@@ -1,5 +1,9 @@
-../Core/Src/sensing.c:119:6:sensing_init	1
-../Core/Src/sensing.c:126:7:sensing_get_sensor_calibrated_value	1
-../Core/Src/sensing.c:131:7:sensing_get_temperature_reading	1
-../Core/Src/sensing.c:136:6:sensing_update_all_temperature_readings	1
-../Core/Src/sensing.c:141:6:sensing_update_all_sensor_channels	3
+../Core/Src/sensing.c:123:6:sensing_init	1
+../Core/Src/sensing.c:130:7:sensing_get_sensor_calibrated_value	1
+../Core/Src/sensing.c:135:7:sensing_get_temperature_reading	1
+../Core/Src/sensing.c:140:6:sensing_update_all_temperature_readings	1
+../Core/Src/sensing.c:145:6:sendUSB_sensor_emitter_data	1
+../Core/Src/sensing.c:165:6:sensing_update_all_sensor_channels	3
+../Core/Src/sensing.c:192:6:send_single_raw_sensor_valueUSB	1
+../Core/Src/sensing.c:222:6:send_uint16_over_usb	1
+../Core/Src/sensing.c:242:6:send_all_sensor_valuesUSB	1
