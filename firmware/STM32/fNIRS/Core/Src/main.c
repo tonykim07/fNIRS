@@ -74,7 +74,6 @@ static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
-uint16_t sensor_value = 12345;
 
 /* USER CODE BEGIN PFP */
 
@@ -138,11 +137,6 @@ int main(void)
   // For USB Debugging
 //  uint8_t *transmit_usb_data = "Hello World from USB CDC\n";
 
-  //send_single_raw_sensor_valueUSB();
-
-  //debugging usb
-//  uint16_t sensor_value = 12345;
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -153,35 +147,14 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    //debug usb
-    //CDC_Transmit_FS(usb_data, sizeof(usb_data) - 1);
-    // send_uint16_over_usb(sensor_value);
-    // HAL_Delay(1000);
-    // sensor_value++;
-
     misc_toggle_led_periodic(3);
     misc_write_to_uart_port_periodic(&huart1, "fNIRS ECU is here\n", 1);
     mux_control_sequencer();
     emitter_control_state_machine();
     sensing_update_all_sensor_channels();
     serial_interface_rx_parse_data(usb_receive_buffer);
-    // send_uint16_over_usb(100);
-    //send_single_raw_sensor_valueUSB();
-    //
-    //HAL_Delay(100);
-    //send_single_raw_sensor_valueUSB();
-    send_all_sensor_valuesUSB();
-//    uint8_t data1[] = "hello world";
-//    uint16_t data[] = ""
-//    CDC_Transmit_FS(data1, sizeof(data1) - 1);
-//    HAL_Delay(10);
-    //send_uint16_over_usb(1048);
-
-
-    // debug usb code
-	  //sensor_value += 100;  // Simulate changing sensor data
-    // update_all_sensors_sendUSB();
-    
+    serial_interface_tx_send_sensor_data();
+        
 
     if (serial_interface_rx_get_user_emitter_control_override_enable())
     {
