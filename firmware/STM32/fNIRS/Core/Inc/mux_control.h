@@ -33,7 +33,6 @@ typedef struct
 {
     bool enabled;
     bool mux_control_ovr;
-    uint8_t timer;
     mux_input_channel_E curr_input_channel;
     mux_input_channel_E input_channel_ovr;
 

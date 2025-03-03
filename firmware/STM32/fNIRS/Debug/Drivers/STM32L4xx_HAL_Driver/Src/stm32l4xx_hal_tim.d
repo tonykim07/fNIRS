@@ -1,5 +1,5 @@
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ramfunc.o: \
- ../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ramfunc.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.o: \
+ ../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h \
  ../Core/Inc/stm32l4xx_hal_conf.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_rcc.h \
