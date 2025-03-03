@@ -43,6 +43,8 @@ static fnirs_sense_vars_S sense_vars = {
 void sensing_init(ADC_HandleTypeDef *hadc)
 {
     sense_vars.adc_handler[ADC_1] = hadc;
+    HAL_ADCEx_Calibration_Start(hadc, ADC_SINGLE_ENDED);
+    HAL_Delay(10);
     HAL_ADC_Start_DMA(hadc, sense_vars.sensor_raw_value_dma, NUM_OF_SENSOR_MODULES);
 }
 
@@ -76,17 +78,17 @@ void sensing_update_all_sensor_channels(void)
     if (sense_vars.adc_conversion_complete)
     {
         const mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
-        for (sensor_module_E i = (sensor_module_E)0U; i < NUM_OF_SENSOR_MODULES; i+=2)
+        for (sensor_module_E i = (sensor_module_E)0U; i < NUM_OF_SENSOR_MODULES; i++)
         {
-        	uint8_t dma_index = i >> 1;
-            uint16_t raw_adc_value_even = (uint16_t)sense_vars.sensor_raw_value_dma[dma_index];
-            uint16_t raw_adc_value_odd = (uint16_t)(sense_vars.sensor_raw_value_dma[dma_index] >> 16);
+//        	uint8_t dma_index = i >> 1;
+            uint16_t raw_adc_value_even = (uint16_t)(sense_vars.sensor_raw_value_dma[i] & 0xffff);
+//            uint16_t raw_adc_value_odd = (uint16_t)(sense_vars.sensor_raw_value_dma[dma_index] >> 16);
 
             sense_vars.sensor_raw_value[i][curr_channel] = raw_adc_value_even;
             sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value_even + sense_vars.sensor_offset[i];
 
-            sense_vars.sensor_raw_value[i+1][curr_channel] = raw_adc_value_odd;
-            sense_vars.sensor_calibrated_value[i+1][curr_channel] = sense_vars.sensor_scale[i+1] * raw_adc_value_odd + sense_vars.sensor_offset[i+1];
+//            sense_vars.sensor_raw_value[i+1][curr_channel] = raw_adc_value_odd;
+//            sense_vars.sensor_calibrated_value[i+1][curr_channel] = sense_vars.sensor_scale[i+1] * raw_adc_value_odd + sense_vars.sensor_offset[i+1];
         }
     }
 }
@@ -95,6 +97,7 @@ void sensing_update_all_sensor_channels(void)
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     sense_vars.adc_conversion_complete = true;
+    sensing_update_all_sensor_channels();
 }
 
 

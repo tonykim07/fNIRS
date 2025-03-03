@@ -125,6 +125,7 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
   
   mux_control_init(&hi2c1);
   emitter_control_init(&hi2c2);
@@ -146,7 +147,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    sensing_update_all_sensor_channels();
+//    sensing_update_all_sensor_channels();
     mux_control_sequencer();
     emitter_control_state_machine();
     serial_interface_rx_parse_data(usb_receive_buffer);
@@ -161,7 +162,7 @@ int main(void)
     {
       emitter_control_request_operating_mode(DEFAULT_MODE);
     }
-    
+
     if (serial_interface_rx_get_user_mux_control_override_enable())
     {
       mux_control_enable_sequencer_override();
@@ -401,7 +402,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x10D19CE4;
+  hi2c1.Init.Timing = 0x00F12981;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -449,7 +450,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x10D19CE4;
+  hi2c2.Init.Timing = 0x00F12981;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;

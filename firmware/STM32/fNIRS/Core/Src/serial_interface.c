@@ -73,7 +73,7 @@ void serial_interface_tx_send_sensor_data(void)
         tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_1_L, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_one) & 0xff;
         tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_2_H, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_two >> 8U) & 0xff;
         tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_2_L, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_two) & 0xff;
-        tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_3_H, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_three) & 0xff;
+        tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_3_H, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_three >> 8U) & 0xff;
         tx_buffer[TX_BUFFER_INDEX(module, SENSOR_CHANNEL_3_L, NUM_OF_BYTES_PER_SENSOR_MODULE)] = (sensor_data_channel_three) & 0xff;
         tx_buffer[TX_BUFFER_INDEX(module, EMITTER_STATUS, NUM_OF_BYTES_PER_SENSOR_MODULE)] = ((uint8_t)emitter_940nm_is_on << 1) | ((uint8_t)emitter_660nm_is_on);
     }
