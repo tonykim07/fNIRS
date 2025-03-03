@@ -6,8 +6,6 @@
 #include "usbd_cdc_if.h"
 
 /* DEFINES */
-// #define USB_BUFFER_SIZE 10
-#define NUM_OF_EMITTERS 16
 
 /* DATA STRUCTURES */
 
@@ -23,83 +21,6 @@
 
 static fnirs_sense_vars_S sense_vars = { 
     .adc_handler = { NULL },
-    .adc_handler_mapping = { 
-        [SENSOR_MODULE_1] = ADC_1,
-        [SENSOR_MODULE_2] = ADC_1,
-        [SENSOR_MODULE_3] = ADC_1,
-        [SENSOR_MODULE_4] = ADC_2,
-        [SENSOR_MODULE_5] = ADC_2,
-        [SENSOR_MODULE_6] = ADC_2,
-        [SENSOR_MODULE_7] = ADC_3,
-        [SENSOR_MODULE_8] = ADC_3,
-    },
-    .adc_channel_config = { 
-        [SENSOR_MODULE_1] = { 
-            .Channel = ADC_CHANNEL_15, 
-            .Rank = ADC_REGULAR_RANK_1, 
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5, 
-            .SingleDiff = ADC_SINGLE_ENDED, 
-            .OffsetNumber = ADC_OFFSET_NONE, 
-            .Offset = 0
-        },
-        [SENSOR_MODULE_2] = {
-            .Channel = ADC_CHANNEL_14,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_3] = {
-            .Channel = ADC_CHANNEL_13,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_4] = {
-            .Channel = ADC_CHANNEL_12,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_5] = {
-            .Channel = ADC_CHANNEL_4,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_6] = {
-            .Channel = ADC_CHANNEL_3,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_7] = 
-        {
-            .Channel = ADC_CHANNEL_1,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        },
-        [SENSOR_MODULE_8] = {
-            .Channel = ADC_CHANNEL_2,
-            .Rank = ADC_REGULAR_RANK_1,
-            .SamplingTime = ADC_SAMPLETIME_2CYCLES_5,
-            .SingleDiff = ADC_SINGLE_ENDED,
-            .OffsetNumber = ADC_OFFSET_NONE,
-            .Offset = 0
-        }
-    },
     .sensor_scale = { 
         [SENSOR_MODULE_1] = 1U,
         [SENSOR_MODULE_2] = 1U,
@@ -115,19 +36,17 @@ static fnirs_sense_vars_S sense_vars = {
     .sensor_calibrated_value = { { 0 } },
     .temp_sensor_raw_adc_value = { 0 },
     .temperature = { 0 },
-    .sampling_timer = 0,
 };
 
 /* FUNCTION DEFINITIONS */
 
-void sensing_init(ADC_HandleTypeDef *hadc1, ADC_HandleTypeDef *hadc2, ADC_HandleTypeDef *hadc3)
+void sensing_init(ADC_HandleTypeDef *hadc)
 {
-    sense_vars.adc_handler[ADC_1] = hadc1;
-    sense_vars.adc_handler[ADC_2] = hadc2;
-    sense_vars.adc_handler[ADC_3] = hadc3;
+    sense_vars.adc_handler[ADC_1] = hadc;
+    HAL_ADC_Start_DMA(hadc, sense_vars.sensor_raw_value_dma, NUM_OF_SENSOR_MODULES);
 }
 
-float sensing_get_sensor_calibrated_value(sensor_module_E sensor_module, mux_input_channel_E detector)
+uint16_t sensing_get_sensor_calibrated_value(sensor_module_E sensor_module, mux_input_channel_E detector)
 {
     return sense_vars.sensor_calibrated_value[sensor_module][detector];
 }
@@ -142,30 +61,40 @@ void sensing_update_all_temperature_readings(void)
     
 }
 
+bool sensing_get_adc_conversion_complete(void)
+{
+    return sense_vars.adc_conversion_complete;
+}
+
+void sensing_reset_adc_conversion_complete(void)
+{
+    sense_vars.adc_conversion_complete = false;
+}
+
 void sensing_update_all_sensor_channels(void)
 {
-    // TODO: optimize this function
-    if (sense_vars.sampling_timer > 10)
+    if (sense_vars.adc_conversion_complete)
     {
-        mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
-
-        for (sensor_module_E i = (sensor_module_E)0; i < NUM_OF_SENSOR_MODULES; i++)
+        const mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
+        for (sensor_module_E i = (sensor_module_E)0U; i < NUM_OF_SENSOR_MODULES; i+=2)
         {
-        	uint16_t raw_adc_value;
-        	ADC_HandleTypeDef *adc_handler = sense_vars.adc_handler[sense_vars.adc_handler_mapping[i]];
+        	uint8_t dma_index = i >> 1;
+            uint16_t raw_adc_value_even = (uint16_t)sense_vars.sensor_raw_value_dma[dma_index];
+            uint16_t raw_adc_value_odd = (uint16_t)(sense_vars.sensor_raw_value_dma[dma_index] >> 16);
 
-            HAL_ADC_ConfigChannel(adc_handler, &sense_vars.adc_channel_config[i]);
-            HAL_ADC_Start(adc_handler);
-            HAL_ADC_PollForConversion(adc_handler, HAL_MAX_DELAY);
-            raw_adc_value = HAL_ADC_GetValue(adc_handler);
-            sense_vars.sensor_raw_value[i][curr_channel] = raw_adc_value;
-            sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value + sense_vars.sensor_offset[i];
+            sense_vars.sensor_raw_value[i][curr_channel] = raw_adc_value_even;
+            sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value_even + sense_vars.sensor_offset[i];
+
+            sense_vars.sensor_raw_value[i+1][curr_channel] = raw_adc_value_odd;
+            sense_vars.sensor_calibrated_value[i+1][curr_channel] = sense_vars.sensor_scale[i+1] * raw_adc_value_odd + sense_vars.sensor_offset[i+1];
         }
-        sense_vars.sampling_timer = 0U;
-    }
-    else
-    {
-        sense_vars.sampling_timer++;
     }
 }
+
+// ISR function
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    sense_vars.adc_conversion_complete = true;
+}
+
 

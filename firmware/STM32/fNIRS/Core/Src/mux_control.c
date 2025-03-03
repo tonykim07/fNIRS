@@ -2,6 +2,7 @@
 /* INCLUDES */
 #include "mux_control.h"
 #include "gpio_expander.h"
+#include "sensing.h"
 
 /* DEFINES */
 
@@ -167,8 +168,10 @@ void mux_control_sequencer(void)
 {
     mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
 
-    // TODO: timer threshold to be adjusted based on desired frequency
-    if (mux_control_vars.timer > 10U)
+    // Update the mux when the conversion for a channel is completed (1kHz)
+    bool update_mux = sensing_get_adc_conversion_complete();
+
+    if (update_mux)
     {
         switch (next_channel)
         {
@@ -205,13 +208,9 @@ void mux_control_sequencer(void)
             next_channel = mux_control_vars.input_channel_ovr;
         }
 
-        mux_control_vars.timer = 0U;
         mux_control_update_gpios(next_channel);
+        sensing_reset_adc_conversion_complete();
         mux_control_vars.curr_input_channel = next_channel;
-    }
-    else
-    {
-        mux_control_vars.timer++;
     }
 }
 
