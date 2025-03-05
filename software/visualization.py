@@ -247,19 +247,11 @@ app = Dash(__name__)
 static_fig = create_static_brain_mesh()
 
 app.layout = html.Div([
-    # The SocketIO component will open a connection to your server
-    SocketIO(
-        id="socket",
-        url="http://localhost:5000",  # Your Socket.IO server URL
-        event="data_stream",          # The event to listen for
-        refresh=False                 # Prevent auto-refresh on reconnection
-    ),
-    # Hidden store to keep the latest data
-    dcc.Store(id='latest-data-store'),
     dcc.Graph(id='brain-mesh-graph', style={'display': 'inline-block'}, figure=static_fig),
     dcc.Graph(id='stacked-activation-graph', style={'display': 'inline-block'}),
+    dcc.Store(id='streamed-data', data=None),
+    dcc.Interval(id='interval-component', interval=1*1000, n_intervals=0)  # Update every 1000ms
 ])
-
 
 
 @app.callback(
