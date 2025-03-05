@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Visualization</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div id="brain-mesh-graph" style="display: inline-block; width: 45%;"></div>
+    <div id="stacked-activation-graph" style="display: inline-block; width: 45%;"></div>
+
+    <script>
+        function updateGraphs() {
+            $.getJSON('/update_graphs', function(data) {
+                if (data.brain_mesh && data.stacked_activation) {
+                    Plotly.react('brain-mesh-graph', JSON.parse(data.brain_mesh).data, JSON.parse(data.brain_mesh).layout);
+                    Plotly.react('stacked-activation-graph', JSON.parse(data.stacked_activation).data, JSON.parse(data.stacked_activation).layout);
+                }
+            });
+        }
+
+        setInterval(updateGraphs, 1000);  // Update every 1000ms
+    </script>
+</body>
+</html>

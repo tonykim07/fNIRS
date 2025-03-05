@@ -1,14 +1,17 @@
-from dash import Dash, html, dcc, Input, Output, State
-import plotly.graph_objects as go
+from flask import Flask, render_template, jsonify, send_from_directory
+from flask_socketio import SocketIO
+import plotly.graph_objs as go
 import numpy as np
 import nibabel as nib
 from scipy.spatial import cKDTree
 import logging
 from data_handler import get_latest_data, sio
-from collections import deque
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
+
+app = Flask(__name__)
+socketio = SocketIO(app)
 
 # Set up static data and initialization functions
 def preload_static_data():
@@ -16,10 +19,10 @@ def preload_static_data():
     Preload static data.
     """
     # Load static brain mesh data
-    coords = np.loadtxt(np.lib.npyio.DataSource().open('BrainMesh_Ch2_smoothed.nv'), skiprows=1, max_rows=53469)
+    coords = np.loadtxt('BrainMesh_Ch2_smoothed.nv', skiprows=1, max_rows=53469)
     x, y, z = coords.T
 
-    triangles = np.loadtxt(np.lib.npyio.DataSource().open('BrainMesh_Ch2_smoothed.nv'), skiprows=53471, dtype=int)
+    triangles = np.loadtxt('BrainMesh_Ch2_smoothed.nv', skiprows=53471, dtype=int)
     triangles_zero_offset = triangles - 1
     i, j, k = triangles_zero_offset.T
 
@@ -147,6 +150,10 @@ def create_static_brain_mesh():
     return fig
 
 
+# initialize the static brain mesh plot
+static_fig = create_static_brain_mesh()
+
+
 def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
     """
     Dynamically update the highlighted regions and sensor node activations with a gradient.
@@ -241,59 +248,25 @@ def create_stacked_activation_plot(activation_data, num_nodes, num_frames):
 
     return fig
 
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
-# Build Dash app
-app = Dash(__name__)
-static_fig = create_static_brain_mesh()
-
-app.layout = html.Div([
-    dcc.Graph(id='brain-mesh-graph', style={'display': 'inline-block'}, figure=static_fig),
-    dcc.Graph(id='stacked-activation-graph', style={'display': 'inline-block'}),
-    dcc.Store(id='streamed-data', data=None),
-    dcc.Interval(id='interval-component', interval=1*1000, n_intervals=0)  # Update every 1000ms
-])
-
-
-@app.callback(
-    Output('streamed-data', 'data'),
-    Input('interval-component', 'n_intervals'),
-    State('streamed-data', 'data')
-)
-def update_store(n_intervals, current_data):
-    latest_data = get_latest_data()  # Get the latest data from the queue
-    print(f"latest data: {latest_data}")
-
+@app.route('/data')
+def data():
+    latest_data = get_latest_data()
     if latest_data is None:
-        return current_data  # Keep old data if nothing new
+        return jsonify({'data': []})
+    return jsonify({'data': latest_data.tolist()})
 
-    # Convert stored data to NumPy array (initialize if empty)
-    if current_data is None or 'data' not in current_data:
-        stored_array = np.empty((latest_data.shape[0], 0))  # Empty array with correct rows
-    else:
-        stored_array = np.array(current_data['data'])
-
-    # Ensure stored_array is 2D and matches node count
-    if stored_array.shape[0] != latest_data.shape[0]:
-        stored_array = np.empty((latest_data.shape[0], 0))  # Reset if mismatch
-
-    # Append the latest activation frame (column-wise)
-    new_frame = latest_data.reshape(-1, 1)  # Ensure 2D shape
-    updated_data = np.hstack([stored_array, new_frame])  # Stack along time axis
-
-    return {'data': updated_data.tolist()}  # Convert back to list for JSON storage
-
-
-@app.callback(
-    [Output('brain-mesh-graph', 'figure'),
-     Output('stacked-activation-graph', 'figure')],
-    Input('streamed-data', 'data')
-)
-def update_graphs(data):
-    if data is None or 'data' not in data or len(data['data']) == 0:
-        return static_fig, go.Figure()
+@app.route('/update_graphs')
+def update_graphs():
+    latest_data = get_latest_data()
+    if latest_data is None:
+        return jsonify({'brain_mesh': None, 'stacked_activation': None})
 
     # Convert stored data back into a NumPy array
-    activation_data = np.array(data['data'])
+    activation_data = np.array(latest_data)
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
 
@@ -305,9 +278,12 @@ def update_graphs(data):
     # Create stacked activation plot with full history
     stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
 
-    return updated_brain_mesh_fig, stacked_fig
+    return jsonify({
+        'brain_mesh': updated_brain_mesh_fig.to_json(),
+        'stacked_activation': stacked_fig.to_json()
+    })
 
 
 if __name__ == '__main__':
     sio.connect('http://localhost:5000', transports=['websocket'])  # Connect to the WebSocket server
-    app.run_server(debug=True, use_reloader=False, port=8050)
+    socketio.run(app, debug=True, port=8050)

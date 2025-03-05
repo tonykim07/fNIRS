@@ -36,6 +36,7 @@ exports/*
 
 #html
 *.html
+!software/index.html
 
 # Object files
 *.o
