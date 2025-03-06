@@ -261,6 +261,7 @@ def data():
 
 @app.route('/update_graphs')
 def update_graphs():
+    print("Updating graphs...")
     latest_data = get_latest_data()
     if latest_data is None:
         return jsonify({'brain_mesh': None, 'stacked_activation': None})
@@ -285,5 +286,5 @@ def update_graphs():
 
 
 if __name__ == '__main__':
-    sio.connect('http://localhost:5000', transports=['websocket'])  # Connect to the WebSocket server
-    socketio.run(app, debug=True, port=8050)
+    sio.connect('http://localhost:5000', transports=['websocket'])
+    socketio.run(app, debug=True, use_reloader=False, port=8050)

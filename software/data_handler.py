@@ -41,7 +41,6 @@ def data_stream(data):
 def get_latest_data():
     latest = None
     with data_lock:
-        # Drain the queue to get the most recent data
-        while not data_queue.empty():
-            latest = data_queue.get()
+        if not data_queue.empty():
+            latest = np.hstack(list(data_queue.queue))  # Get the entire history
     return latest
