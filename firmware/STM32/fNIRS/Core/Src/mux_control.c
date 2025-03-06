@@ -5,6 +5,7 @@
 #include "sensing.h"
 
 /* DEFINES */
+#define DISABLE_MUXING (1U)
 
 // Note: lsb is the R/W bit: R = 1, W = 0
 #define GPIO_EXPANDER_SLAVE_ADDR_ONE_READ (0b01000001)
@@ -168,10 +169,9 @@ void mux_control_sequencer(void)
 {
     mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
 
-    // Update the mux when the conversion for a channel is completed (1kHz)
-    bool update_mux = sensing_get_adc_conversion_complete();
+    uint8_t update_mux_counter = sensing_get_adc_conversion_complete();
 
-    if (update_mux)
+    if (update_mux_counter >= 1U)
     {
         switch (next_channel)
         {
@@ -203,21 +203,25 @@ void mux_control_sequencer(void)
                 break;
         }
 
+//#if DISABLE_MUXING
+//        next_channel = MUX_INPUT_CHANNEL_ONE;
+//#endif
+
         if (mux_control_vars.mux_control_ovr)
         {
             next_channel = mux_control_vars.input_channel_ovr;
         }
 
+//#if !DISABLE_MUXING
+        __disable_irq();
+//#endif
         mux_control_update_gpios(next_channel);
+//#if !DISABLE_MUXING
+        __enable_irq();
+//#endif
         sensing_reset_adc_conversion_complete();
         mux_control_vars.curr_input_channel = next_channel;
     }
-}
-
-#if DEBUG_GPIO_EXPANDER
-uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux)
-{
-    return gpio_expander_debug_read_address(&gpio_expander_vars[mux], reg_addr);
 }
 
 void mux_control_enable_sequencer_override(void)
@@ -235,4 +239,9 @@ void mux_control_set_input_channel_ovr(mux_input_channel_E channel)
     mux_control_vars.input_channel_ovr = channel;
 }
 
+#if DEBUG_GPIO_EXPANDER
+uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux)
+{
+    return gpio_expander_debug_read_address(&gpio_expander_vars[mux], reg_addr);
+}
 #endif // DEBUG_GPIO_EXPANDER
