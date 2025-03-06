@@ -59,10 +59,10 @@ mux_input_channel_E serial_interface_rx_get_user_mux_control_state(void)
 void serial_interface_tx_send_sensor_data(void)
 {
     uint8_t tx_buffer[NUM_OF_SENSOR_MODULES * NUM_OF_BYTES_PER_SENSOR_MODULE];
-
+    uint16_t temp = sensing_get_sensor_calibrated_value(SENSOR_MODULE_1, MUX_INPUT_CHANNEL_ONE);
     for (sensor_module_E module = (sensor_module_E)0U; module < NUM_OF_SENSOR_MODULES; module++)
     {
-        uint16_t sensor_data_channel_one = sensing_get_sensor_calibrated_value(module, MUX_INPUT_CHANNEL_ONE);
+		uint16_t sensor_data_channel_one = sensing_get_sensor_calibrated_value(module, MUX_INPUT_CHANNEL_ONE);
         uint16_t sensor_data_channel_two = sensing_get_sensor_calibrated_value(module, MUX_INPUT_CHANNEL_TWO);
         uint16_t sensor_data_channel_three = sensing_get_sensor_calibrated_value(module, MUX_INPUT_CHANNEL_THREE);
         bool emitter_940nm_is_on = emitter_control_is_emitter_active(SENSOR_MODULE_TO_940NM_PWM_CHANNEL(module));
@@ -78,5 +78,12 @@ void serial_interface_tx_send_sensor_data(void)
         tx_buffer[TX_BUFFER_INDEX(module, EMITTER_STATUS, NUM_OF_BYTES_PER_SENSOR_MODULE)] = ((uint8_t)emitter_940nm_is_on << 1) | ((uint8_t)emitter_660nm_is_on);
     }
 
-    CDC_Transmit_FS(tx_buffer, sizeof(tx_buffer));   
+//    CDC_Transmit_FS(tx_buffer, sizeof(tx_buffer));
+    CDC_Transmit_FS(&temp, sizeof(temp));
+}
+
+// ISR function - called every 10kHz
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+	serial_interface_tx_send_sensor_data();
 }
