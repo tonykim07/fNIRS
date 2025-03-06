@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, send_from_directory
+from flask import Flask, render_template, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
 import numpy as np
@@ -64,6 +64,9 @@ coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
 initial_sensor_positions = initialize_sensor_positions(coords)
 regions = map_points_to_regions(initial_sensor_positions, affine, aal_data) # Map nodes to regions and find regions to highlight
 
+# Initialize emitter states (all ON by default)
+emitter_states = [True] * 16
+
 
 def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     """ 
@@ -74,7 +77,7 @@ def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     return coords[distances <= threshold]
 
 
-def create_static_brain_mesh():
+def create_static_brain_mesh(emitter_states):
     """
     Create the static brain mesh plot with a hidden trace for the colorbar.
     """
@@ -91,16 +94,17 @@ def create_static_brain_mesh():
     ))
     
     # Split sensor nodes into Emitters and Detectors
-    emitter_positions = initial_sensor_positions[:8]  # First 8 as Emitters
-    detector_positions = initial_sensor_positions[8:]  # Remaining 12 as Detectors
+    emitter_positions = initial_sensor_positions[:16]  # First 16 as Emitters
+    detector_positions = initial_sensor_positions[16:]  # Remaining 4 as Detectors
     
-    # Add Emitters trace (Yellow)
+    # Add Emitters trace (Yellow or Gray based on state)
+    emitter_colors = ['yellow' if state else 'gray' for state in emitter_states]
     fig.add_trace(go.Scatter3d(
         x=emitter_positions[:, 0],
         y=emitter_positions[:, 1],
         z=emitter_positions[:, 2],
         mode='markers',
-        marker=dict(size=6, color='yellow'),
+        marker=dict(size=6, color=emitter_colors),
         name='Emitters',  # Legend entry
         showlegend=True
     ))
@@ -148,10 +152,6 @@ def create_static_brain_mesh():
         showlegend=True
     )
     return fig
-
-
-# initialize the static brain mesh plot
-static_fig = create_static_brain_mesh()
 
 
 def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
@@ -274,7 +274,7 @@ def update_graphs():
     num_nodes, num_frames = activation_data.shape
 
     # Update the brain mesh with the latest frame
-    updated_brain_mesh_fig = update_highlighted_regions(static_fig, activation_data, num_frames - 1)
+    updated_brain_mesh_fig = update_highlighted_regions(create_static_brain_mesh(emitter_states), activation_data, num_frames - 1)
 
     # Create stacked activation plot with full history
     stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
@@ -284,6 +284,12 @@ def update_graphs():
         'stacked_activation': stacked_fig.to_json()
     })
 
+@app.route('/update_emitter_states', methods=['POST'])
+def update_emitter_states():
+    global emitter_states
+    data = request.json
+    emitter_states = data['emitter_states']
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     sio.connect('http://localhost:5000', transports=['websocket'])
