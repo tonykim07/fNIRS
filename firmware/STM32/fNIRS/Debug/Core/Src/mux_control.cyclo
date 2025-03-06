@@ -2,8 +2,8 @@
 ../Core/Src/mux_control.c:144:6:mux_control_init	2
 ../Core/Src/mux_control.c:158:21:mux_control_get_curr_input_channel	1
 ../Core/Src/mux_control.c:163:6:mux_control_enable_sequencer	1
-../Core/Src/mux_control.c:168:6:mux_control_sequencer	9
-../Core/Src/mux_control.c:227:6:mux_control_enable_sequencer_override	1
-../Core/Src/mux_control.c:232:6:mux_control_disable_sequencer_override	1
-../Core/Src/mux_control.c:237:6:mux_control_set_input_channel_ovr	1
-../Core/Src/mux_control.c:243:9:test_mux_control_read_addr	1
+../Core/Src/mux_control.c:168:6:mux_control_sequencer	10
+../Core/Src/mux_control.c:230:6:mux_control_enable_sequencer_override	1
+../Core/Src/mux_control.c:235:6:mux_control_disable_sequencer_override	1
+../Core/Src/mux_control.c:240:6:mux_control_set_input_channel_ovr	1
+../Core/Src/mux_control.c:246:9:test_mux_control_read_addr	1

@@ -70,4 +70,6 @@ uint8_t sensing_get_adc_conversion_complete(void);
 void sensing_reset_adc_conversion_complete(void);
 void sensing_update_all_sensor_channels(void);
 
+void sensing_update_single_channel(void);
+
 #endif /* INC_SENSING_H_ */

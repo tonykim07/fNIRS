@@ -203,22 +203,25 @@ void mux_control_sequencer(void)
                 break;
         }
 
-//#if DISABLE_MUXING
-//        next_channel = MUX_INPUT_CHANNEL_ONE;
-//#endif
+#if DISABLE_MUXING
+        next_channel = MUX_INPUT_CHANNEL_ONE;
+#endif
 
         if (mux_control_vars.mux_control_ovr)
         {
             next_channel = mux_control_vars.input_channel_ovr;
         }
 
-//#if !DISABLE_MUXING
+#if !DISABLE_MUXING
         __disable_irq();
-//#endif
-        mux_control_update_gpios(next_channel);
-//#if !DISABLE_MUXING
+#endif
+        if (next_channel != mux_control_vars.curr_input_channel)
+        {
+			mux_control_update_gpios(next_channel);
+        }
+#if !DISABLE_MUXING
         __enable_irq();
-//#endif
+#endif
         sensing_reset_adc_conversion_complete();
         mux_control_vars.curr_input_channel = next_channel;
     }

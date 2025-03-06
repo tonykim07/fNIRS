@@ -85,5 +85,5 @@ void serial_interface_tx_send_sensor_data(void)
 // ISR function - called every 10kHz
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-	serial_interface_tx_send_sensor_data();
+//	serial_interface_tx_send_sensor_data();
 }

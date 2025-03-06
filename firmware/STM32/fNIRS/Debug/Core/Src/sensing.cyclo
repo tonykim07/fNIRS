@@ -5,4 +5,5 @@
 ../Core/Src/sensing.c:67:9:sensing_get_adc_conversion_complete	1
 ../Core/Src/sensing.c:72:6:sensing_reset_adc_conversion_complete	1
 ../Core/Src/sensing.c:77:6:sensing_update_all_sensor_channels	2
-../Core/Src/sensing.c:91:6:HAL_ADC_ConvCpltCallback	1
+../Core/Src/sensing.c:90:6:sensing_update_single_channel	5
+../Core/Src/sensing.c:115:6:HAL_ADC_ConvCpltCallback	1

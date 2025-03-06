@@ -87,11 +87,36 @@ void sensing_update_all_sensor_channels(void)
 	}
 }
 
+void sensing_update_single_channel(void)
+{
+	static uint16_t data_buffer[1000] = { 0 };
+	static uint16_t i = 0;
+
+	data_buffer[i++] = (uint16_t)((sense_vars.sensor_raw_value_dma[1] >> 16) & 0xffff);
+
+	if (i > 999 && i < 1200)
+	{
+		uint8_t buffer_to_send[2000] = { 0 };
+		for (int j = 0; j < 1000; j++)
+		{
+			buffer_to_send[j*2] = data_buffer[j] & 0xff;
+			buffer_to_send[j*2+1] = (data_buffer[j] >> 8) & 0xff;
+		}
+		CDC_Transmit_FS(buffer_to_send, sizeof(buffer_to_send));
+		i = 1500;
+	}
+	else if (i > 999)
+	{
+		i = 1500;
+	}
+}
+
 // ISR function - called every 5kHz
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     sense_vars.adc_conversion_completed_counter++;
-    sensing_update_all_sensor_channels();
+//    sensing_update_all_sensor_channels();
+    sensing_update_single_channel();
 }
 
 

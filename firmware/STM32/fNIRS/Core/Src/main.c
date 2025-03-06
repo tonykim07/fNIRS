@@ -137,8 +137,10 @@ int main(void)
   emitter_control_enable();
   emitter_control_request_operating_mode(DEFAULT_MODE);
 
+  HAL_Delay(10000);
+
   HAL_TIM_Base_Start(&htim3);
-  HAL_TIM_Base_Start_IT(&htim4);
+//  HAL_TIM_Base_Start_IT(&htim4);
 
   /* USER CODE END 2 */
 
@@ -153,25 +155,25 @@ int main(void)
     emitter_control_state_machine();
     serial_interface_rx_parse_data(usb_receive_buffer);
 
-    if (serial_interface_rx_get_user_emitter_control_override_enable())
-    {
-      emitter_control_state_E override_state = serial_interface_rx_get_emitter_control_state();
-      emitter_control_request_operating_mode(override_state);
-    }
-    else
-    {
-      emitter_control_request_operating_mode(DEFAULT_MODE);
-    }
-
-    if (serial_interface_rx_get_user_mux_control_override_enable())
-    {
-      mux_control_enable_sequencer_override();
-      mux_control_set_input_channel_ovr(serial_interface_rx_get_user_mux_control_state());
-    }
-    else
-    {
-      mux_control_disable_sequencer_override();
-    }
+//    if (serial_interface_rx_get_user_emitter_control_override_enable())
+//    {
+//      emitter_control_state_E override_state = serial_interface_rx_get_emitter_control_state();
+//      emitter_control_request_operating_mode(override_state);
+//    }
+//    else
+//    {
+//      emitter_control_request_operating_mode(DEFAULT_MODE);
+//    }
+//
+//    if (serial_interface_rx_get_user_mux_control_override_enable())
+//    {
+//      mux_control_enable_sequencer_override();
+//      mux_control_set_input_channel_ovr(serial_interface_rx_get_user_mux_control_state());
+//    }
+//    else
+//    {
+//      mux_control_disable_sequencer_override();
+//    }
 
     misc_toggle_led_periodic(3);
     misc_write_to_uart_port_periodic(&huart1, "fNIRS ECU is here\n", 1);
@@ -541,9 +543,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 79;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 15999;
+  htim3.Init.Period = 999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -588,7 +590,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 7999;
+  htim4.Init.Period = 15999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
