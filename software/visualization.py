@@ -67,6 +67,15 @@ regions = map_points_to_regions(initial_sensor_positions, affine, aal_data) # Ma
 # Initialize emitter states (all ON by default)
 emitter_states = [True] * 16
 
+# Initialize control data
+control_data = {
+    'emitter_control_override_enable': 0,
+    'emitter_control_state': 0,
+    'emitter_pwm_control_h': 0,
+    'emitter_pwm_control_l': 0,
+    'mux_control_override_enable': 0,
+    'mux_control_state': 0
+}
 
 def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     """ 
@@ -261,7 +270,7 @@ def data():
 
 @app.route('/update_graphs')
 def update_graphs():
-    print("Updating graphs...")
+    # print("Updating graphs...")
     latest_data = get_latest_data()
     if latest_data is None:
         return jsonify({'brain_mesh': None, 'stacked_activation': None})
@@ -289,6 +298,15 @@ def update_emitter_states():
     global emitter_states
     data = request.json
     emitter_states = data['emitter_states']
+    return jsonify({'status': 'success'})
+
+@app.route('/update_control_data', methods=['POST'])
+def update_control_data():
+    global control_data
+    data = request.json
+    control_data.update(data)
+    logging.info(f"Control data updated: {control_data}")
+    # Here you would add the code to communicate with the firmware
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':

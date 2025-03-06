@@ -9,52 +9,72 @@
 </head>
 <body>
     <div>
-        <button id="btn-0" onclick="toggleEmitter(0)" style="margin: 5px; background-color: yellow;">Emitter 1</button>
-        <button id="btn-1" onclick="toggleEmitter(1)" style="margin: 5px; background-color: yellow;">Emitter 2</button>
-        <button id="btn-2" onclick="toggleEmitter(2)" style="margin: 5px; background-color: yellow;">Emitter 3</button>
-        <button id="btn-3" onclick="toggleEmitter(3)" style="margin: 5px; background-color: yellow;">Emitter 4</button>
-        <button id="btn-4" onclick="toggleEmitter(4)" style="margin: 5px; background-color: yellow;">Emitter 5</button>
-        <button id="btn-5" onclick="toggleEmitter(5)" style="margin: 5px; background-color: yellow;">Emitter 6</button>
-        <button id="btn-6" onclick="toggleEmitter(6)" style="margin: 5px; background-color: yellow;">Emitter 7</button>
-        <button id="btn-7" onclick="toggleEmitter(7)" style="margin: 5px; background-color: yellow;">Emitter 8</button>
-        <button id="btn-8" onclick="toggleEmitter(8)" style="margin: 5px; background-color: yellow;">Emitter 9</button>
-        <button id="btn-9" onclick="toggleEmitter(9)" style="margin: 5px; background-color: yellow;">Emitter 10</button>
-        <button id="btn-10" onclick="toggleEmitter(10)" style="margin: 5px; background-color: yellow;">Emitter 11</button>
-        <button id="btn-11" onclick="toggleEmitter(11)" style="margin: 5px; background-color: yellow;">Emitter 12</button>
-        <button id="btn-12" onclick="toggleEmitter(12)" style="margin: 5px; background-color: yellow;">Emitter 13</button>
-        <button id="btn-13" onclick="toggleEmitter(13)" style="margin: 5px; background-color: yellow;">Emitter 14</button>
-        <button id="btn-14" onclick="toggleEmitter(14)" style="margin: 5px; background-color: yellow;">Emitter 15</button>
-        <button id="btn-15" onclick="toggleEmitter(15)" style="margin: 5px; background-color: yellow;">Emitter 16</button>
+        <label for="emitter_control_override_enable">Emitter Control Override Enable:</label>
+        <input type="checkbox" id="emitter_control_override_enable" onchange="updateControlData()">
+    </div>
+    <div>
+        <label for="emitter_control_state">Emitter Control State:</label>
+        <select id="emitter_control_state" onchange="updateControlData()">
+            <option value="0">DISABLED</option>
+            <option value="1">IDLE</option>
+            <option value="2">DEFAULT_MODE</option>
+            <option value="3">USER_CONTROL</option>
+            <option value="4">CYCLING</option>
+            <option value="5">FULLY_ENABLED_940NM</option>
+            <option value="6">FULLY_ENABLED_660NM</option>
+        </select>
+    </div>
+    <div>
+        <label for="emitter_pwm_control_h">Emitter PWM Control High:</label>
+        <input type="text" id="emitter_pwm_control_h" value="0" onchange="updateControlData()">
+    </div>
+    <div>
+        <label for="emitter_pwm_control_l">Emitter PWM Control Low:</label>
+        <input type="text" id="emitter_pwm_control_l" value="0" onchange="updateControlData()">
+    </div>
+    <div>
+        <label for="mux_control_override_enable">MUX Control Override Enable:</label>
+        <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
+    </div>
+    <div>
+        <label for="mux_control_state">MUX Control State:</label>
+        <select id="mux_control_state" onchange="updateControlData()">
+            <option value="0">MUX Disabled</option>
+            <option value="1">MUX Channel 1</option>
+            <option value="2">MUX Channel 2</option>
+            <option value="3">MUX Channel 3</option>
+        </select>
     </div>
     <div id="brain-mesh-graph" style="display: inline-block; width: 45%;"></div>
     <div id="stacked-activation-graph" style="display: inline-block; width: 45%;"></div>
 
     <script>
-        let emitterStates = [true, true, true, true, true, true, true, true];
+        let controlData = {
+            emitter_control_override_enable: 0,
+            emitter_control_state: 0,
+            emitter_pwm_control_h: 0,
+            emitter_pwm_control_l: 0,
+            mux_control_override_enable: 0,
+            mux_control_state: 0
+        };
 
-        function toggleEmitter(index) {
-            emitterStates[index] = !emitterStates[index];
-            updateEmitterStates();
-            updateButtonStyles();
-        }
+        function updateControlData() {
+            controlData.emitter_control_override_enable = document.getElementById('emitter_control_override_enable').checked ? 1 : 0;
+            controlData.emitter_control_state = parseInt(document.getElementById('emitter_control_state').value);
+            controlData.emitter_pwm_control_h = parseInt(document.getElementById('emitter_pwm_control_h').value);
+            controlData.emitter_pwm_control_l = parseInt(document.getElementById('emitter_pwm_control_l').value);
+            controlData.mux_control_override_enable = document.getElementById('mux_control_override_enable').checked ? 1 : 0;
+            controlData.mux_control_state = parseInt(document.getElementById('mux_control_state').value);
 
-        function updateEmitterStates() {
             $.ajax({
-                url: '/update_emitter_states',
+                url: '/update_control_data',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ emitter_states: emitterStates }),
+                data: JSON.stringify(controlData),
                 success: function(response) {
-                    console.log('Emitter states updated:', response);
+                    console.log('Control data updated:', response);
                 }
             });
-        }
-
-        function updateButtonStyles() {
-            for (let i = 0; i < emitterStates.length; i++) {
-                const button = document.getElementById(`btn-${i}`);
-                button.style.backgroundColor = emitterStates[i] ? 'yellow' : 'gray';
-            }
         }
 
         function updateGraphs() {
