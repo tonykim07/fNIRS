@@ -27,7 +27,7 @@ def disconnect():
 @sio.event
 def data_stream(data):
     """Handle incoming data from the server."""
-    logging.info("Received new data: %s", data)
+    # logging.info("Received new data: %s", data)
     activation_data = np.array(data['data'])
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
@@ -36,7 +36,7 @@ def data_stream(data):
         if data_queue.full():
             data_queue.get()  # Remove the oldest data if the queue is full
         data_queue.put(activation_data)
-    logging.info("Updated data queue with new data")
+    # logging.info("Updated data queue with new data")
 
 def get_latest_data():
     latest = None
