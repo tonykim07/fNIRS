@@ -50,15 +50,15 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             // Even numbered modules enable 660NM emitters
 
             // Module 1
-            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE; // 940nm ON
+            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE; 
             emitter_control_vars.phase_shift[PWM_CHANNEL0] = DEFAULT_PHASE_SHIFT;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE; // 660nm OFF
+            emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE;
             emitter_control_vars.phase_shift[PWM_CHANNEL1] = DEFAULT_PHASE_SHIFT;
 
             // Module 2
-            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE; // 940nm OFF
+            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE; 
             emitter_control_vars.phase_shift[PWM_CHANNEL2] = DEFAULT_PHASE_SHIFT;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;    // 660nm ON
+            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;    
             emitter_control_vars.phase_shift[PWM_CHANNEL3] = DEFAULT_PHASE_SHIFT;
 
             // Module 3
