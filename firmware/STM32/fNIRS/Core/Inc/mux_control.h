@@ -33,7 +33,6 @@ typedef struct
 {
     bool enabled;
     bool mux_control_ovr;
-    uint8_t timer;
     mux_input_channel_E curr_input_channel;
     mux_input_channel_E input_channel_ovr;
 
@@ -44,12 +43,12 @@ void mux_control_init(I2C_HandleTypeDef* hi2c);
 mux_input_channel_E mux_control_get_curr_input_channel(void);
 void mux_control_enable_sequencer(void);
 void mux_control_sequencer(void);
-
-#if (DEBUG_GPIO_EXPANDER)
-uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux);
 void mux_control_enable_sequencer_override(void);
 void mux_control_disable_sequencer_override(void);
 void mux_control_set_input_channel_ovr(mux_input_channel_E channel);
+
+#if (DEBUG_GPIO_EXPANDER)
+uint8_t test_mux_control_read_addr(uint8_t reg_addr, mux_controller_E mux);
 #endif // DEBUG_GPIO_EXPANDER
 
 #endif /* INC_MUX_CONTROL_H_ */

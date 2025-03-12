@@ -1,6 +1,8 @@
-../Core/Src/serial_interface.c:13:6:serial_interface_rx_parse_data	1
-../Core/Src/serial_interface.c:27:6:serial_interface_rx_get_user_emitter_control_override_enable	1
-../Core/Src/serial_interface.c:32:25:serial_interface_rx_get_emitter_control_state	1
-../Core/Src/serial_interface.c:37:10:serial_interface_rx_get_user_emitter_controls	1
-../Core/Src/serial_interface.c:42:6:serial_interface_rx_get_user_mux_control_override_enable	1
-../Core/Src/serial_interface.c:47:21:serial_interface_rx_get_user_mux_control_state	1
+../Core/Src/serial_interface.c:20:6:serial_interface_rx_parse_data	1
+../Core/Src/serial_interface.c:34:6:serial_interface_rx_get_user_emitter_control_override_enable	1
+../Core/Src/serial_interface.c:39:25:serial_interface_rx_get_emitter_control_state	1
+../Core/Src/serial_interface.c:44:10:serial_interface_rx_get_user_emitter_controls	1
+../Core/Src/serial_interface.c:49:6:serial_interface_rx_get_user_mux_control_override_enable	1
+../Core/Src/serial_interface.c:54:21:serial_interface_rx_get_user_mux_control_state	1
+../Core/Src/serial_interface.c:59:6:serial_interface_tx_send_sensor_data	2
+../Core/Src/serial_interface.c:86:6:HAL_TIM_PeriodElapsedCallback	1

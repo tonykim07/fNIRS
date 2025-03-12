@@ -9,6 +9,7 @@
 #define PWM_DRIVER_SLAVE_ADDR_READ (0b10001011)
 #define DEFAULT_DUTY_CYCLE (1.00)
 #define DEFAULT_PHASE_SHIFT (0.00)
+#define DEFAULT_PWM_FREQUENCY (1500)
 #define ZERO_DUTY_CYCLE (0.00)
 
 /* DATA STRUCTURES */
@@ -19,11 +20,12 @@ static pwm_driver_handler_S pwm_config = {
     .gpio_port              = PWM_CTRL_EN1_GPIO_Port,
     .i2c_handler            = NULL,
     .device_config_vars     = { 0 },
-    .pwm_frequency          = 1500,
+    .pwm_frequency          = DEFAULT_PWM_FREQUENCY,
     .duty_cycle             = { 0 },
     .phase_shift            = { 0 },
 };
 
+// extern emitter_control_vars_S emitter_control_vars = { 0 };
 static emitter_control_vars_S emitter_control_vars = { 0 };
 
 /* FUNCTION DEFINITIONS */
@@ -48,15 +50,15 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             // Even numbered modules enable 660NM emitters
 
             // Module 1
-            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL0] = ZERO_DUTY_CYCLE; 
             emitter_control_vars.phase_shift[PWM_CHANNEL0] = DEFAULT_PHASE_SHIFT;
             emitter_control_vars.duty_cycle[PWM_CHANNEL1] = DEFAULT_DUTY_CYCLE;
             emitter_control_vars.phase_shift[PWM_CHANNEL1] = DEFAULT_PHASE_SHIFT;
 
             // Module 2
-            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL2] = DEFAULT_DUTY_CYCLE; 
             emitter_control_vars.phase_shift[PWM_CHANNEL2] = DEFAULT_PHASE_SHIFT;
-            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;
+            emitter_control_vars.duty_cycle[PWM_CHANNEL3] = ZERO_DUTY_CYCLE;    
             emitter_control_vars.phase_shift[PWM_CHANNEL3] = DEFAULT_PHASE_SHIFT;
 
             // Module 3
@@ -94,7 +96,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             emitter_control_vars.duty_cycle[PWM_CHANNEL15] = ZERO_DUTY_CYCLE;
             emitter_control_vars.phase_shift[PWM_CHANNEL15] = DEFAULT_PHASE_SHIFT;
 
-            emitter_control_vars.pwm_frequency = 1500;
+            emitter_control_vars.pwm_frequency = DEFAULT_PWM_FREQUENCY;
             break; 
 
         case USER_CONTROL:
@@ -103,7 +105,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             {
                 emitter_control_vars.duty_cycle[i] = (float)((override_data >> i) & 0x1);
             }
-            emitter_control_vars.pwm_frequency = 1500;
+            emitter_control_vars.pwm_frequency = DEFAULT_PWM_FREQUENCY;
             break;
 
         case CYCLING: 
@@ -237,6 +239,11 @@ void emitter_control_state_machine(void)
     {
         emitter_control_vars.timer++;
     }
+}
+
+bool emitter_control_is_emitter_active(pwm_channel_E channel)
+{
+    return (emitter_control_vars.duty_cycle[channel] > 0);
 }
 
 #if DEBUG_PWM_DRIVER

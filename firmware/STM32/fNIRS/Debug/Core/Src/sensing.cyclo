@@ -1,5 +1,8 @@
-../Core/Src/sensing.c:119:6:sensing_init	1
-../Core/Src/sensing.c:126:7:sensing_get_sensor_calibrated_value	1
-../Core/Src/sensing.c:131:7:sensing_get_temperature_reading	1
-../Core/Src/sensing.c:136:6:sensing_update_all_temperature_readings	1
-../Core/Src/sensing.c:141:6:sensing_update_all_sensor_channels	3
+../Core/Src/sensing.c:44:6:sensing_init	1
+../Core/Src/sensing.c:52:10:sensing_get_sensor_calibrated_value	1
+../Core/Src/sensing.c:57:7:sensing_get_temperature_reading	1
+../Core/Src/sensing.c:62:6:sensing_update_all_temperature_readings	1
+../Core/Src/sensing.c:67:9:sensing_get_adc_conversion_complete	1
+../Core/Src/sensing.c:72:6:sensing_reset_adc_conversion_complete	1
+../Core/Src/sensing.c:77:6:sensing_update_all_sensor_channels	2
+../Core/Src/sensing.c:91:6:HAL_ADC_ConvCpltCallback	1
