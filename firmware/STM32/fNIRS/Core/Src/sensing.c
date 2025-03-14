@@ -7,7 +7,7 @@
 
 /* DEFINES */
 
-#define LPF_ALPHA (1.0)
+#define LPF_ALPHA (0.3)
 
 /* DATA STRUCTURES */
 
