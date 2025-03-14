@@ -177,8 +177,8 @@ void mux_control_sequencer(void)
 
         case MUX_INPUT_CHANNEL_TWO:
             // Disable mux channel three for now due to timing constraints
-            // next_channel = MUX_INPUT_CHANNEL_THREE;
-            next_channel = MUX_INPUT_CHANNEL_ONE;
+            next_channel = MUX_INPUT_CHANNEL_THREE;
+            // next_channel = MUX_INPUT_CHANNEL_ONE;
             break;
 
         case MUX_INPUT_CHANNEL_THREE:

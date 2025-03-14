@@ -7,6 +7,8 @@
 
 /* DEFINES */
 
+#define LPF_ALPHA (0.3)
+
 /* DATA STRUCTURES */
 
 // Hardware mapping
@@ -40,6 +42,11 @@ static fnirs_sense_vars_S sense_vars = {
 
 /* FUNCTION DEFINITIONS */
 
+static inline uint16_t sensing_low_pass_filter(uint16_t input, uint16_t previous_output) 
+{
+    return (uint16_t)(LPF_ALPHA * input + (1.0 - LPF_ALPHA) * previous_output);
+}
+
 void sensing_init(ADC_HandleTypeDef *hadc)
 {
     sense_vars.adc_handler[ADC_1] = hadc;
@@ -71,8 +78,8 @@ void sensing_update_all_sensor_channels(void)
 		uint8_t dma_index = i >> 1;
 		uint16_t raw_adc_value_even = (uint16_t)(sense_vars.sensor_raw_value_dma[dma_index] & 0xffff);
 		uint16_t raw_adc_value_odd = (uint16_t)(sense_vars.sensor_raw_value_dma[dma_index] >> 16);
-		sense_vars.sensor_calibrated_value[i][curr_channel] = sense_vars.sensor_scale[i] * raw_adc_value_even + sense_vars.sensor_offset[i];
-		sense_vars.sensor_calibrated_value[i+1][curr_channel] = sense_vars.sensor_scale[i+1] * raw_adc_value_odd + sense_vars.sensor_offset[i+1];
+		sense_vars.sensor_calibrated_value[i][curr_channel] = sensing_low_pass_filter(raw_adc_value_even, sense_vars.sensor_calibrated_value[i][curr_channel]);
+		sense_vars.sensor_calibrated_value[i+1][curr_channel] = sensing_low_pass_filter(raw_adc_value_odd, sense_vars.sensor_calibrated_value[i+1][curr_channel]);
 	}
 }
 
