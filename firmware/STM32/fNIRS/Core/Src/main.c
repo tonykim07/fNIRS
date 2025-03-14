@@ -174,7 +174,7 @@ int main(void)
     }
 
     misc_toggle_led_periodic(3);
-    misc_write_to_uart_port_periodic(&huart1, "fNIRS ECU is here\n", 1);
+    // misc_write_to_uart_port_periodic(&huart1, "fNIRS ECU is here\n", 1);
   }
 
   /* USER CODE END 3 */
@@ -309,7 +309,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_15;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_47CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;

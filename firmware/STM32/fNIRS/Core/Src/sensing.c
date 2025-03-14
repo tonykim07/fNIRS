@@ -36,7 +36,6 @@ static fnirs_sense_vars_S sense_vars = {
     .sensor_calibrated_value = { { 0 } },
     .temp_sensor_raw_adc_value = { 0 },
     .temperature = { 0 },
-	.adc_conversion_completed_counter = 0U,
 };
 
 /* FUNCTION DEFINITIONS */
@@ -64,16 +63,6 @@ void sensing_update_all_temperature_readings(void)
     
 }
 
-uint8_t sensing_get_adc_conversion_complete(void)
-{
-    return sense_vars.adc_conversion_completed_counter;
-}
-
-void sensing_reset_adc_conversion_complete(void)
-{
-    sense_vars.adc_conversion_completed_counter = 0U;
-}
-
 void sensing_update_all_sensor_channels(void)
 {
 	const mux_input_channel_E curr_channel = mux_control_get_curr_input_channel();
@@ -90,7 +79,6 @@ void sensing_update_all_sensor_channels(void)
 // ISR function - called every 5kHz
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    sense_vars.adc_conversion_completed_counter++;
     sensing_update_all_sensor_channels();
 }
 
