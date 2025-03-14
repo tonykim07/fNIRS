@@ -1,159 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brain Visualization</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        .control-panel {
-            display: flex;
-            justify-content: space-between;
-        }
-        .control-section {
-            width: 45%;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Sensor Group Activation Plots</title>
+  <!-- Load Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <!-- Load Plotly -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      background-color: #f5f5f5;
+    }
+    .graph-container {
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .graph-title {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .toggle-button {
+      margin-bottom: 20px;
+    }
+    /* Adjust styling for tabbed mode */
+    .nav-tabs {
+      margin-bottom: 15px;
+      border-bottom: none;
+    }
+    .nav-tabs .nav-link {
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #555;
+      font-weight: bold;
+      padding: 10px 15px;
+    }
+    .nav-tabs .nav-link.active {
+      border-bottom: 2px solid #007bff;
+      color: #007bff;
+      background-color: #fff;
+    }
+    /* Ensure the tab content container doesn't overflow */
+    .tab-pane.graph-container {
+      height: 400px !important;
+      overflow: hidden;
+      padding: 0; /* Remove extra padding if needed */
+    }
+  </style>
 </head>
 <body>
-    <div class="control-panel">
-        <div class="control-section">
-            <h3>Emitter Control</h3>
-            <div>
-                <label for="emitter_control_override_enable">Emitter Control Override Enable:</label>
-                <input type="checkbox" id="emitter_control_override_enable" onchange="updateControlData()">
-            </div>
-            <div>
-                <label for="emitter_control_state">Emitter Control State:</label>
-                <select id="emitter_control_state" onchange="updateControlData()" disabled>
-                    <option value="0">DISABLED</option>
-                    <option value="1">IDLE</option>
-                    <option value="2">DEFAULT_MODE</option>
-                    <option value="3">USER_CONTROL</option>
-                    <option value="4">CYCLING</option>
-                    <option value="5">FULLY_ENABLED_940NM</option>
-                    <option value="6">FULLY_ENABLED_660NM</option>
-                </select>
-            </div>
-            <div id="emitter_pwm_controls" style="display: none;">
-                <h4>Emitter PWM Control</h4>
-                <div>
-                    <label>PWM Control High:</label>
-                    <div>
-                        <input type="checkbox" id="emitter_15" onchange="updateControlData()"> 15
-                        <input type="checkbox" id="emitter_14" onchange="updateControlData()"> 14
-                        <input type="checkbox" id="emitter_13" onchange="updateControlData()"> 13
-                        <input type="checkbox" id="emitter_12" onchange="updateControlData()"> 12
-                        <input type="checkbox" id="emitter_11" onchange="updateControlData()"> 11
-                        <input type="checkbox" id="emitter_10" onchange="updateControlData()"> 10
-                        <input type="checkbox" id="emitter_9" onchange="updateControlData()"> 9
-                        <input type="checkbox" id="emitter_8" onchange="updateControlData()"> 8
-                    </div>
-                </div>
-                <div>
-                    <label>PWM Control Low:</label>
-                    <div>
-                        <input type="checkbox" id="emitter_7" onchange="updateControlData()"> 7
-                        <input type="checkbox" id="emitter_6" onchange="updateControlData()"> 6
-                        <input type="checkbox" id="emitter_5" onchange="updateControlData()"> 5
-                        <input type="checkbox" id="emitter_4" onchange="updateControlData()"> 4
-                        <input type="checkbox" id="emitter_3" onchange="updateControlData()"> 3
-                        <input type="checkbox" id="emitter_2" onchange="updateControlData()"> 2
-                        <input type="checkbox" id="emitter_1" onchange="updateControlData()"> 1
-                        <input type="checkbox" id="emitter_0" onchange="updateControlData()"> 0
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="control-section">
-            <h3>MUX Control</h3>
-            <div>
-                <label for="mux_control_override_enable">MUX Control Override Enable:</label>
-                <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
-            </div>
-            <div>
-                <label for="mux_control_state">MUX Control State:</label>
-                <select id="mux_control_state" onchange="updateControlData()" disabled>
-                    <option value="0">MUX Disabled</option>
-                    <option value="1">MUX Channel 1</option>
-                    <option value="2">MUX Channel 2</option>
-                    <option value="3">MUX Channel 3</option>
-                </select>
-            </div>
-        </div>
+  <div class="container">
+    <h1 class="mt-4 mb-4 text-center">Sensor Group Activation Plots</h1>
+    
+    <!-- Toggle Button -->
+    <div class="text-center">
+      <button id="toggleMode" class="btn btn-primary toggle-button">Switch to Collapsed Mode</button>
     </div>
-    <div id="brain-mesh-graph" style="display: inline-block; width: 45%;"></div>
-    <div id="stacked-activation-graph" style="display: inline-block; width: 45%;"></div>
-
-    <script>
-        let controlData = {
-            emitter_control_override_enable: 0,
-            emitter_control_state: 0,
-            emitter_pwm_control_h: 0,
-            emitter_pwm_control_l: 0,
-            mux_control_override_enable: 0,
-            mux_control_state: 0
-        };
-
-        function updateControlData() {
-            controlData.emitter_control_override_enable = document.getElementById('emitter_control_override_enable').checked ? 1 : 0;
-            controlData.emitter_control_state = parseInt(document.getElementById('emitter_control_state').value);
-            controlData.emitter_pwm_control_h = getPwmControlValue('h');
-            controlData.emitter_pwm_control_l = getPwmControlValue('l');
-            controlData.mux_control_override_enable = document.getElementById('mux_control_override_enable').checked ? 1 : 0;
-            controlData.mux_control_state = parseInt(document.getElementById('mux_control_state').value);
-
-            $.ajax({
-                url: '/update_control_data',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(controlData),
-                success: function(response) {
-                    console.log('Control data updated:', response);
-                }
-            });
-
-            updateUI();
-        }
-
-        function getPwmControlValue(type) {
-            let value = 0;
-            for (let i = 0; i < 8; i++) {
-                const index = type === 'h' ? 15 - i : 7 - i;
-                const checkbox = document.getElementById(`emitter_${index}`);
-                if (checkbox && checkbox.checked) {
-                    value |= (1 << i);
-                }
+    
+    <!-- Expanded Mode: Grid Layout -->
+    <div id="expanded-container">
+      <div class="row">
+        <div class="col-md-6 graph-container" id="group1-container">
+          <div id="group1" style="height: 400px;"></div>
+        </div>
+        <div class="col-md-6 graph-container" id="group2-container">
+          <div id="group2" style="height: 400px;"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 graph-container" id="group3-container">
+          <div id="group3" style="height: 400px;"></div>
+        </div>
+        <div class="col-md-6 graph-container" id="group4-container">
+          <div id="group4" style="height: 400px;"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 graph-container" id="group5-container">
+          <div id="group5" style="height: 400px;"></div>
+        </div>
+        <div class="col-md-6 graph-container" id="group6-container">
+          <div id="group6" style="height: 400px;"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 graph-container" id="group7-container">
+          <div id="group7" style="height: 400px;"></div>
+        </div>
+        <div class="col-md-6 graph-container" id="group8-container">
+          <div id="group8" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Collapsed Mode: Tabbed Layout -->
+    <div id="collapsed-container" style="display: none;">
+      <ul class="nav nav-tabs" id="groupTabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="tab1-tab" data-toggle="tab" href="#tab1" role="tab">S1</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab2-tab" data-toggle="tab" href="#tab2" role="tab">S2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab3-tab" data-toggle="tab" href="#tab3" role="tab">S3</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab4-tab" data-toggle="tab" href="#tab4" role="tab">S4</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab5-tab" data-toggle="tab" href="#tab5" role="tab">S5</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab6-tab" data-toggle="tab" href="#tab6" role="tab">S6</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab7-tab" data-toggle="tab" href="#tab7" role="tab">S7</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab8-tab" data-toggle="tab" href="#tab8" role="tab">S8</a>
+        </li>
+      </ul>
+      <div class="tab-content" id="groupTabsContent">
+        <div class="tab-pane fade show active graph-container" id="tab1" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab2" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab3" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab4" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab5" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab6" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab7" role="tabpanel" style="height: 400px;"></div>
+        <div class="tab-pane fade graph-container" id="tab8" role="tabpanel" style="height: 400px;"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Load Bootstrap JS and dependencies -->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  
+  <script>
+    // Function to update graphs in both modes
+    function updateGraphs() {
+      fetch('/update_graphs')
+        .then(response => response.json())
+        .then(data => {
+          const grouped = data.grouped_activation;
+          // Update expanded mode graphs
+          for (let i = 1; i <= 8; i++) {
+            if (grouped[`group${i}`]) {
+              const fig = JSON.parse(grouped[`group${i}`]);
+              Plotly.react(`group${i}`, fig.data, fig.layout);
             }
-            return value;
-        }
-
-        function updateUI() {
-            const emitterOverrideEnabled = document.getElementById('emitter_control_override_enable').checked;
-            const muxOverrideEnabled = document.getElementById('mux_control_override_enable').checked;
-            const emitterControlState = parseInt(document.getElementById('emitter_control_state').value);
-
-            document.getElementById('emitter_control_state').disabled = !emitterOverrideEnabled;
-            document.getElementById('mux_control_state').disabled = !muxOverrideEnabled;
-            document.getElementById('emitter_pwm_controls').style.display = (emitterControlState === 3 && emitterOverrideEnabled) ? 'block' : 'none';
-        }
-
-        function updateGraphs() {
-            $.getJSON('/update_graphs', function(data) {
-                console.log("Updating graphs with data:", data);
-                if (data.brain_mesh && data.stacked_activation) {
-                    Plotly.react('brain-mesh-graph', JSON.parse(data.brain_mesh).data, JSON.parse(data.brain_mesh).layout);
-                    Plotly.react('stacked-activation-graph', JSON.parse(data.stacked_activation).data, JSON.parse(data.stacked_activation).layout);
-                }
-            }).always(function() {
-                // Schedule the next update 1 second after this one finishes
-                setTimeout(updateGraphs, 1000);
-            });
-        }
-
-        updateGraphs();
-
-    </script>
+          }
+          // Update collapsed mode graphs (tabs)
+          for (let i = 1; i <= 8; i++) {
+            if (grouped[`group${i}`]) {
+              const fig = JSON.parse(grouped[`group${i}`]);
+              Plotly.react(`tab${i}`, fig.data, fig.layout);
+            }
+          }
+        })
+        .catch(error => console.error('Error fetching graph data:', error));
+    }
+    
+    // Toggle between expanded and collapsed modes
+    document.getElementById('toggleMode').addEventListener('click', function() {
+      const expanded = document.getElementById('expanded-container');
+      const collapsed = document.getElementById('collapsed-container');
+      if (expanded.style.display !== 'none') {
+        expanded.style.display = 'none';
+        collapsed.style.display = 'block';
+        this.textContent = 'Switch to Expanded Mode';
+      } else {
+        expanded.style.display = 'block';
+        collapsed.style.display = 'none';
+        this.textContent = 'Switch to Collapsed Mode';
+      }
+    });
+    
+    // Initial rendering of the graphs
+    updateGraphs();
+    // Refresh graphs periodically (every second, adjust as needed)
+    setInterval(updateGraphs, 1000);
+  </script>
 </body>
 </html>

@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 sio = socketio.Client()
 
 # Data queue to store incoming data
-data_queue = Queue(maxsize=10)
+data_queue = Queue(maxsize=20)
 data_lock = threading.Lock()  # Create a lock for synchronization
 
 # Connection events
@@ -25,10 +25,10 @@ def disconnect():
 
 # Handle incoming data from the server
 @sio.event
-def data_stream(data):
+def processed_data(data):
     """Handle incoming data from the server."""
-    # logging.info("Received new data: %s", data)
-    activation_data = np.array(data['data'])
+    # logging.info("Received new data: %s", data['concentrations'])
+    activation_data = np.array(data['concentrations'])
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
     
@@ -44,3 +44,7 @@ def get_latest_data():
         if not data_queue.empty():
             latest = np.hstack(list(data_queue.queue))  # Get the entire history
     return latest
+
+# if __name__ == "__main__":
+#     sio.connect("http://localhost:5000")
+#     sio.wait()
