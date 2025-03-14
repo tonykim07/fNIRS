@@ -5,4 +5,4 @@
 ../Core/Src/serial_interface.c:49:6:serial_interface_rx_get_user_mux_control_override_enable	1
 ../Core/Src/serial_interface.c:54:21:serial_interface_rx_get_user_mux_control_state	1
 ../Core/Src/serial_interface.c:59:6:serial_interface_tx_send_sensor_data	2
-../Core/Src/serial_interface.c:86:6:HAL_TIM_PeriodElapsedCallback	1
+../Core/Src/serial_interface.c:88:6:HAL_TIM_PeriodElapsedCallback	1
