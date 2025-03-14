@@ -48,7 +48,6 @@ typedef struct
     ADC_HandleTypeDef *adc_handler[NUM_OF_ADC_MODULES];
     
     // DMA flag and buffer
-    uint8_t adc_conversion_completed_counter;
     uint32_t sensor_raw_value_dma[NUM_OF_SENSOR_MODULES];
     
     uint16_t sensor_raw_value[NUM_OF_SENSOR_MODULES][NUM_OF_INPUT_CHANNELS];
@@ -66,8 +65,6 @@ void sensing_init(ADC_HandleTypeDef *hadc);
 uint16_t sensing_get_sensor_calibrated_value(sensor_module_E sensor_module, mux_input_channel_E detector);
 float sensing_get_temperature_reading(temp_sensor_E sensor);
 void sensing_update_all_temperature_readings(void);
-uint8_t sensing_get_adc_conversion_complete(void);
-void sensing_reset_adc_conversion_complete(void);
 void sensing_update_all_sensor_channels(void);
 
 #endif /* INC_SENSING_H_ */
