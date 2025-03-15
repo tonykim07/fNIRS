@@ -26,7 +26,6 @@ static pwm_driver_handler_S pwm_config = {
     .phase_shift            = { 0 },
 };
 
-// extern emitter_control_vars_S emitter_control_vars = { 0 };
 static emitter_control_vars_S emitter_control_vars = { 0 };
 
 /* FUNCTION DEFINITIONS */

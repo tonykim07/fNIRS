@@ -22,6 +22,7 @@ bool isr_get_half_second_flag(void)
 {
     return isr_vars.half_second_flag;
 }
+
 void isr_reset_half_second_flag(void)
 {
     isr_vars.tim4_timer_ticks = 0U;

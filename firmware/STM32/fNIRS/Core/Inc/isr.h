@@ -18,5 +18,6 @@ typedef struct
 /* FUNCTION DECLARATIONS */
 uint16_t isr_get_1khz_timer_ticks(void);
 bool isr_get_half_second_flag(void);
+void isr_reset_half_second_flag(void);
 
 #endif /* INC_ISR_H_ */
