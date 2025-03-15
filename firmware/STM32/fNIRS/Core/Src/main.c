@@ -135,7 +135,7 @@ int main(void)
 
   mux_control_enable_sequencer();
   emitter_control_enable();
-  emitter_control_request_operating_mode(DEFAULT_MODE);
+  emitter_control_request_operating_mode(CYCLING);
 
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
@@ -160,7 +160,7 @@ int main(void)
     }
     else
     {
-      emitter_control_request_operating_mode(DEFAULT_MODE);
+       emitter_control_request_operating_mode(CYCLING);
     }
 
     if (serial_interface_rx_get_user_mux_control_override_enable())
