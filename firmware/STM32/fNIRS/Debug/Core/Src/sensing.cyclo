@@ -4,4 +4,3 @@
 ../Core/Src/sensing.c:63:7:sensing_get_temperature_reading	1
 ../Core/Src/sensing.c:68:6:sensing_update_all_temperature_readings	1
 ../Core/Src/sensing.c:73:6:sensing_update_all_sensor_channels	2
-../Core/Src/sensing.c:87:6:HAL_ADC_ConvCpltCallback	1

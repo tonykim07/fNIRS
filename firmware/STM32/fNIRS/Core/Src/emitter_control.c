@@ -3,6 +3,7 @@
 #include "emitter_control.h"
 #include "pwm_driver.h"
 #include "serial_interface.h"
+#include "isr.h"
 
 /* DEFINES */
 // Note: lsb is read/write bit: R = 1, W = 0
@@ -25,7 +26,6 @@ static pwm_driver_handler_S pwm_config = {
     .phase_shift            = { 0 },
 };
 
-// extern emitter_control_vars_S emitter_control_vars = { 0 };
 static emitter_control_vars_S emitter_control_vars = { 0 };
 
 /* FUNCTION DEFINITIONS */
@@ -109,6 +109,28 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             break;
 
         case CYCLING: 
+            for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i++)
+            {
+                emitter_control_vars.duty_cycle[i] = ZERO_DUTY_CYCLE; 
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
+
+            if (emitter_control_vars.timer % 2 == 0U)
+            {
+                for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i+=2)
+                {
+                    emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE;
+                    emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+                }
+            }
+            else
+            {
+                for (pwm_channel_E i = (pwm_channel_E)1; i < NUM_OF_PWM_CHANNELS; i+=2)
+                {
+                    emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE; 
+                    emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+                }
+            }
             break;
 
         case FULLY_ENABLED_940NM:
@@ -118,6 +140,13 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
                 emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE;
                 emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
             }
+
+            // Make sure 660NM emitters are off
+            for (pwm_channel_E i = (pwm_channel_E)1; i < NUM_OF_PWM_CHANNELS; i+=2)
+            {
+                emitter_control_vars.duty_cycle[i] = ZERO_DUTY_CYCLE; 
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
             break;
 
         case FULLY_ENABLED_660NM:
@@ -125,6 +154,13 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             for (pwm_channel_E i = (pwm_channel_E)1; i < NUM_OF_PWM_CHANNELS; i+=2)
             {
                 emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE; 
+                emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
+            }
+
+            // Make sure 660NM emitters are off
+            for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i+=2)
+            {
+                emitter_control_vars.duty_cycle[i] = ZERO_DUTY_CYCLE;
                 emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
             }
             break;
@@ -188,9 +224,9 @@ void emitter_control_state_machine(void)
 {
     emitter_control_state_E curr_state = emitter_control_vars.curr_state;
     emitter_control_state_E next_state = curr_state;
-
-    // update timer threshold value to determine the frequency of the state machine
-    if (emitter_control_vars.timer > 10U)
+    bool run_state_machine = isr_get_half_second_flag();
+    
+    if (run_state_machine)
     {
         switch (curr_state)
         {
@@ -231,13 +267,10 @@ void emitter_control_state_machine(void)
                 break;
         }
 
-        emitter_control_vars.timer = 0U;
+        emitter_control_vars.timer++;
         emitter_control_update_pwm_channels(curr_state);
         emitter_control_vars.curr_state = next_state;
-    }
-    else
-    {
-        emitter_control_vars.timer++;
+        isr_reset_half_second_flag();
     }
 }
 

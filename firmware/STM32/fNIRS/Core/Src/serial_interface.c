@@ -83,9 +83,3 @@ void serial_interface_tx_send_sensor_data(void)
 //    uint16_t temp = sensing_get_sensor_calibrated_value(SENSOR_MODULE_1, MUX_INPUT_CHANNEL_ONE);
 //    CDC_Transmit_FS(&temp, sizeof(temp));
 }
-
-// ISR function - called every 10kHz
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
-{
-	serial_interface_tx_send_sensor_data();
-}

@@ -83,10 +83,3 @@ void sensing_update_all_sensor_channels(void)
 	}
 }
 
-// ISR function - called every 5kHz
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-    sensing_update_all_sensor_channels();
-}
-
-
