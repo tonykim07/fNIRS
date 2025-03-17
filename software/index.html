@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Brain Visualization & Sensor Activation</title>
+  <title>fNIRS Data Visualization</title>
   <!-- Load Bootstrap CSS -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
   <!-- Load Plotly -->
@@ -16,9 +17,12 @@
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       color: #333;
     }
-    h1, h3 {
+
+    h1,
+    h3 {
       color: #004085;
     }
+
     .container {
       max-width: 1500px;
       padding-left: 10px;
@@ -30,55 +34,66 @@
       margin-bottom: 20px;
       border: none;
       border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+
     .card-header {
       background-color: #004085;
       color: #fff;
       border-top-left-radius: 10px;
       border-top-right-radius: 10px;
     }
+
     .card-body {
       background-color: #fff;
       padding: 20px;
     }
+
     /* Control Panel Styles */
     .control-panel {
       margin-bottom: 30px;
     }
+
     .control-panel .card-header {
       text-align: center;
       font-size: 1.25rem;
     }
+
     .control-section label {
       font-weight: bold;
     }
+
     .control-section input[type="checkbox"],
     .control-section select {
       margin-left: 10px;
     }
+
     /* Graph Container Styles */
     .graph-container {
       padding: 15px;
       background-color: #fff;
       border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
     }
+
     .graph-title {
       text-align: center;
       margin-bottom: 10px;
       font-weight: bold;
       color: #004085;
     }
+
     .toggle-button {
       margin-bottom: 20px;
     }
+
     /* Tabs Styling */
     .nav-tabs {
       margin-bottom: 15px;
       border-bottom: none;
     }
+
     .nav-tabs .nav-link {
       border: none;
       border-bottom: 2px solid transparent;
@@ -86,16 +101,19 @@
       font-weight: bold;
       padding: 10px 15px;
     }
+
     .nav-tabs .nav-link.active {
       border-bottom: 2px solid #004085;
       color: #004085;
       background-color: #fff;
     }
+
     .tab-pane.graph-container {
       height: 400px !important;
       overflow: hidden;
       padding: 0;
     }
+
     /* Brain Mesh Container */
     #brainMeshContainer {
       width: 100%;
@@ -103,11 +121,12 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container my-4">
     <!-- Page Header -->
     <div class="text-center mb-4">
-      <h1>Brain Visualization & Sensor Activation</h1>
+      <h1>fNIRS Data Visualization</h1>
     </div>
 
     <!-- Emitter and MUX Control Panel -->
@@ -138,33 +157,59 @@
               </div>
               <div id="emitter_pwm_controls" style="display: none;">
                 <h5>Emitter PWM Control</h5>
-                <div class="mb-2">
-                  <label>PWM Control High:</label>
-                  <div>
-                    <input type="checkbox" id="emitter_15" onchange="updateControlData()"> 15
-                    <input type="checkbox" id="emitter_14" onchange="updateControlData()"> 14
-                    <input type="checkbox" id="emitter_13" onchange="updateControlData()"> 13
-                    <input type="checkbox" id="emitter_12" onchange="updateControlData()"> 12
-                    <input type="checkbox" id="emitter_11" onchange="updateControlData()"> 11
-                    <input type="checkbox" id="emitter_10" onchange="updateControlData()"> 10
-                    <input type="checkbox" id="emitter_9" onchange="updateControlData()"> 9
-                    <input type="checkbox" id="emitter_8" onchange="updateControlData()"> 8
-                  </div>
-                </div>
-                <div>
-                  <label>PWM Control Low:</label>
-                  <div>
-                    <input type="checkbox" id="emitter_7" onchange="updateControlData()"> 7
-                    <input type="checkbox" id="emitter_6" onchange="updateControlData()"> 6
-                    <input type="checkbox" id="emitter_5" onchange="updateControlData()"> 5
-                    <input type="checkbox" id="emitter_4" onchange="updateControlData()"> 4
-                    <input type="checkbox" id="emitter_3" onchange="updateControlData()"> 3
-                    <input type="checkbox" id="emitter_2" onchange="updateControlData()"> 2
-                    <input type="checkbox" id="emitter_1" onchange="updateControlData()"> 1
-                    <input type="checkbox" id="emitter_0" onchange="updateControlData()"> 0
-                  </div>
-                </div>
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Emitter</th>
+                      <th>940nm</th>
+                      <th>660nm</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Emitter 0</td>
+                      <td><input type="checkbox" id="emitter_0_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_0_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 1</td>
+                      <td><input type="checkbox" id="emitter_1_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_1_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 2</td>
+                      <td><input type="checkbox" id="emitter_2_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_2_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 3</td>
+                      <td><input type="checkbox" id="emitter_3_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_3_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 4</td>
+                      <td><input type="checkbox" id="emitter_4_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_4_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 5</td>
+                      <td><input type="checkbox" id="emitter_5_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_5_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 6</td>
+                      <td><input type="checkbox" id="emitter_6_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_6_660" onchange="updateControlData()"></td>
+                    </tr>
+                    <tr>
+                      <td>Emitter 7</td>
+                      <td><input type="checkbox" id="emitter_7_940" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_7_660" onchange="updateControlData()"></td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+
             </div>
             <div class="col-md-6">
               <h3>MUX Control</h3>
@@ -188,15 +233,42 @@
     </div>
 
     <!-- Brain Mesh Section -->
-    <div class="card mb-4">
+    <!-- <div class="card mb-4">
       <div class="card-header text-center">3D Brain Mesh with Sensor Nodes</div>
       <div class="card-body">
         <div id="brainMeshContainer"></div>
       </div>
-    </div>
+    </div> -->
+
 
     <!-- Toggle Button for Sensor Charts -->
     <div class="text-center mb-3">
+      <div class="card mb-4">
+        <div class="card-header text-center">3D Brain Mesh with Sensor Nodes</div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Brain Mesh Column -->
+            <div class="col-md-8">
+              <div id="brainMeshContainer" style="width:100%; height:800px;"></div>
+            </div>
+            <!-- Sensor Group Buttons Column -->
+            <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+              <div class="btn-group-vertical custom-btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 1</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 2</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 3</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 4</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 5</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 6</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 7</button>
+                <button type="button" class="btn btn-outline-primary btn-sm">Sensor Group 8</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
       <button id="toggleMode" class="btn btn-primary">Switch to Collapsed Mode</button>
     </div>
 
@@ -316,12 +388,105 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Load Bootstrap JS and dependencies -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-  
+
   <script>
+    // LED green color; adjust as needed.
+    const LED_GREEN = "#39FF14";
+    const WHITE = "white";
+
+    var currentGroup = null;  // global variable to store the selected group
+    var currentCamera = null; // Global variable to store current camera settings
+
+    // Attach a listener to capture camera changes.
+    // Using Plotly's built-in event handler.
+    function attachCameraListener() {
+      var brainDiv = document.getElementById("brainMeshContainer");
+      if (brainDiv) {
+        // Remove any previously attached listener first (if needed)
+        // Then attach the listener.
+        brainDiv.on('plotly_relayout', function (eventData) {
+          if (eventData['scene.camera']) {
+            currentCamera = eventData['scene.camera'];
+            // Debug log:
+            console.log("Camera updated:", currentCamera);
+          }
+        });
+      }
+    }
+
+    // This function updates the emitter capsule colors based on PWM checkbox states.
+    function updateEmitterColors() {
+      // We assume you have 8 emitters.
+      var emitterColors = [];
+      for (var i = 0; i < 8; i++) {
+        // Check if either wavelength control for emitter i is checked.
+        var isActive = $("#emitter_" + i + "_940").is(":checked") || $("#emitter_" + i + "_660").is(":checked");
+        emitterColors.push(isActive ? LED_GREEN : WHITE);
+      }
+
+      // Get the brain mesh Plotly div.
+      var brainDiv = document.getElementById("brainMeshContainer");
+      if (!brainDiv || !brainDiv.data) return;
+
+      // Identify the emitter traces.
+      // (We assume emitter traces were added in the same order as emitter_positions.)
+      var emitterTraceIndices = [];
+      var count = 0;
+      for (var i = 0; i < brainDiv.data.length; i++) {
+        if (brainDiv.data[i].name === "Emitter") {
+          emitterTraceIndices.push(i);
+          count++;
+        }
+      }
+      // If the number of emitter traces doesn't match, log a warning.
+      if (emitterTraceIndices.length !== emitterColors.length) {
+        console.warn("Emitter trace count and emitter color count do not match!");
+      }
+
+      // Update each emitter trace's color.
+      emitterTraceIndices.forEach(function (traceIndex, idx) {
+        Plotly.restyle(brainDiv, { 'color': [emitterColors[idx]] }, traceIndex);
+      });
+    }
+
+    $(document).ready(function () {
+      // Attach a click handler to each sensor group button.
+      $(".custom-btn-group button").click(function () {
+        // Extract the group number from the button text (assumes format "Sensor Group X").
+        var buttonText = $(this).text().trim();
+        var groupId = parseInt(buttonText.split(" ")[2]);  // Splits "Sensor Group 1" and takes the 3rd part
+
+        // Set the global variable to persist the selection.
+        currentGroup = groupId;
+
+        // Update button styles so only one appears active
+        $(".custom-btn-group button").removeClass("active");
+        $(this).addClass("active");
+
+        // Call the endpoint to get the updated brain mesh with the selected group highlighted.
+        $.getJSON("/select_group/" + groupId, function (data) {
+          if (data.brain_mesh) {
+            const brainFig = JSON.parse(data.brain_mesh);
+            // If a camera setting exists, reapply it.
+            if (currentCamera) {
+              brainFig.layout.scene.camera = currentCamera;
+            }
+            // Use Plotly.react and then, once finished, reapply the camera.
+            Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
+              if (currentCamera) {
+                Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
+              }
+              attachCameraListener();
+            });
+          }
+        });
+      });
+    });
+
     // Emitter & MUX control logic
     let controlData = {
       emitter_control_override_enable: 0,
@@ -345,12 +510,13 @@
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(controlData),
-        success: function(response) {
+        success: function (response) {
           console.log('Control data updated:', response);
         }
       });
 
       updateUI();
+      updateEmitterColors();
     }
 
     function getPwmControlValue(type) {
@@ -377,11 +543,25 @@
 
     // Function to update brain mesh and sensor charts
     function updateGraphs() {
-      $.getJSON('/update_graphs', function(data) {
+      var endpoint = currentGroup !== null ? '/select_group/' + currentGroup : '/update_graphs';
+      $.getJSON(endpoint, function (data) {
         // Update brain mesh
         if (data.brain_mesh) {
           const brainFig = JSON.parse(data.brain_mesh);
-          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout);
+          var brainDiv = document.getElementById("brainMeshContainer");
+          // Use currentCamera if available, otherwise try to get the current camera from the existing layout.
+          if (currentCamera) {
+            brainFig.layout.scene.camera = currentCamera;
+          } else if (brainDiv && brainDiv._fullLayout && brainDiv._fullLayout.scene && brainDiv._fullLayout.scene.camera) {
+            brainFig.layout.scene.camera = brainDiv._fullLayout.scene.camera;
+          }
+          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
+            if (currentCamera) {
+              Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
+            }
+            attachCameraListener();
+            updateEmitterColors();
+          });
         }
         // Update expanded sensor charts
         if (data.grouped_activation) {
@@ -404,13 +584,13 @@
           Plotly.react('group1', fig.data, fig.layout);
           Plotly.react('tab1', fig.data, fig.layout);
         }
-      }).always(function() {
+      }).always(function () {
         setTimeout(updateGraphs, 1000);
       });
     }
 
     // Toggle between expanded and collapsed modes
-    document.getElementById('toggleMode').addEventListener('click', function() {
+    document.getElementById('toggleMode').addEventListener('click', function () {
       const expanded = document.getElementById('expanded-container');
       const collapsed = document.getElementById('collapsed-container');
       if (expanded.style.display !== 'none') {
@@ -428,4 +608,5 @@
     updateGraphs();
   </script>
 </body>
+
 </html>
