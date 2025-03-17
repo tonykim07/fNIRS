@@ -29,7 +29,7 @@
       padding-right: 10px;
     }
 
-    /* Container Cards */
+    /* Card Styles */
     .card {
       margin-bottom: 20px;
       border: none;
@@ -42,30 +42,13 @@
       color: #fff;
       border-top-left-radius: 10px;
       border-top-right-radius: 10px;
+      text-align: center;
+      font-size: 1.25rem;
     }
 
     .card-body {
       background-color: #fff;
       padding: 20px;
-    }
-
-    /* Control Panel Styles */
-    .control-panel {
-      margin-bottom: 30px;
-    }
-
-    .control-panel .card-header {
-      text-align: center;
-      font-size: 1.25rem;
-    }
-
-    .control-section label {
-      font-weight: bold;
-    }
-
-    .control-section input[type="checkbox"],
-    .control-section select {
-      margin-left: 10px;
     }
 
     /* Graph Container Styles */
@@ -77,41 +60,22 @@
       margin-bottom: 20px;
     }
 
-    .graph-title {
-      text-align: center;
-      margin-bottom: 10px;
-      font-weight: bold;
+    .btn-custom {
+      background-color: white;
       color: #004085;
+      border: 2px solid #004085;
     }
 
-    .toggle-button {
-      margin-bottom: 20px;
+    .btn-custom:hover,
+    .btn-custom:focus,
+    .btn-custom:active {
+      background-color: #004085;
+      color: white;
     }
 
-    /* Tabs Styling */
-    .nav-tabs {
-      margin-bottom: 15px;
-      border-bottom: none;
-    }
-
-    .nav-tabs .nav-link {
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: #555;
-      font-weight: bold;
-      padding: 10px 15px;
-    }
-
-    .nav-tabs .nav-link.active {
-      border-bottom: 2px solid #004085;
-      color: #004085;
-      background-color: #fff;
-    }
-
-    .tab-pane.graph-container {
-      height: 400px !important;
-      overflow: hidden;
-      padding: 0;
+    .btn-custom.active {
+      background-color: #004085;
+      color: white;
     }
 
     /* Brain Mesh Container */
@@ -129,15 +93,64 @@
       <h1>fNIRS Data Visualization</h1>
     </div>
 
-    <!-- Emitter and MUX Control Panel -->
-    <div class="control-panel">
-      <div class="card">
-        <div class="card-header">
-          Emitter &amp; MUX Control
+    <div class="row">
+      <!-- Left Column: Brain Mesh -->
+      <div class="col-md-8">
+        <div class="card mb-4">
+          <div class="card-header">3D Brain Mesh with Sensor Nodes</div>
+          <div class="card-body">
+            <div id="brainMeshContainer"></div>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
+      </div>
+
+      <!-- Right Column: Control Panels -->
+      <div class="col-md-4">
+        <!-- Sensor Group Buttons Panel -->
+        <div class="card mb-4">
+          <div class="card-header">Sensor Group Mappings</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-6 custom-btn-group" role="group">
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 1</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 2</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 3</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block">Group 4</button>
+              </div>
+              <div class="col-6 custom-btn-group" role="group">
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 5</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 6</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block mb-2">Group 7</button>
+                <button type="button" class="btn btn-custom btn-sm btn-block">Group 8</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Control Panel: MUX Control (Top) and Emitter Control (Bottom) -->
+        <div class="card">
+          <div class="card-header">Control Panel</div>
+          <div class="card-body">
+            <!-- MUX Control Section -->
+            <div class="mb-4">
+              <h3>MUX Control</h3>
+              <div class="mb-2">
+                <label for="mux_control_override_enable">Override Enable:</label>
+                <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
+              </div>
+              <div class="mb-2">
+                <label for="mux_control_state">Control State:</label>
+                <select id="mux_control_state" onchange="updateControlData()" disabled>
+                  <option value="0">MUX Disabled</option>
+                  <option value="1">MUX Channel 1</option>
+                  <option value="2">MUX Channel 2</option>
+                  <option value="3">MUX Channel 3</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Emitter Control Section -->
+            <div>
               <h3>Emitter Control</h3>
               <div class="mb-2">
                 <label for="emitter_control_override_enable">Override Enable:</label>
@@ -155,8 +168,8 @@
                   <option value="6">FULLY_ENABLED_660NM</option>
                 </select>
               </div>
+              <!-- Emitter PWM Control Table -->
               <div id="emitter_pwm_controls" style="display: none;">
-                <h5>Emitter PWM Control</h5>
                 <table class="table table-bordered">
                   <thead>
                     <tr>
@@ -209,66 +222,14 @@
                   </tbody>
                 </table>
               </div>
-
             </div>
-            <div class="col-md-6">
-              <h3>MUX Control</h3>
-              <div class="mb-2">
-                <label for="mux_control_override_enable">Override Enable:</label>
-                <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
-              </div>
-              <div class="mb-2">
-                <label for="mux_control_state">Control State:</label>
-                <select id="mux_control_state" onchange="updateControlData()" disabled>
-                  <option value="0">MUX Disabled</option>
-                  <option value="1">MUX Channel 1</option>
-                  <option value="2">MUX Channel 2</option>
-                  <option value="3">MUX Channel 3</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </div> <!-- End Card Body for Control Panel -->
+        </div> <!-- End Control Panel Card -->
+      </div> <!-- End Right Column -->
+    </div> <!-- End Row -->
 
-    <!-- Brain Mesh Section -->
-    <!-- <div class="card mb-4">
-      <div class="card-header text-center">3D Brain Mesh with Sensor Nodes</div>
-      <div class="card-body">
-        <div id="brainMeshContainer"></div>
-      </div>
-    </div> -->
-
-
-    <!-- Toggle Button for Sensor Charts -->
+    <!-- Expanded/Collapsed Sensor Group Charts (existing code remains) -->
     <div class="text-center mb-3">
-      <div class="card mb-4">
-        <div class="card-header text-center">3D Brain Mesh with Sensor Nodes</div>
-        <div class="card-body">
-          <div class="row">
-            <!-- Brain Mesh Column -->
-            <div class="col-md-8">
-              <div id="brainMeshContainer" style="width:100%; height:800px;"></div>
-            </div>
-            <!-- Sensor Group Buttons Column -->
-            <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
-              <div class="btn-group-vertical custom-btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 1</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 2</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 3</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 4</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 5</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 6</button>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-2">Sensor Group 7</button>
-                <button type="button" class="btn btn-outline-primary btn-sm">Sensor Group 8</button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
       <button id="toggleMode" class="btn btn-primary">Switch to Collapsed Mode</button>
     </div>
 
@@ -458,7 +419,7 @@
       $(".custom-btn-group button").click(function () {
         // Extract the group number from the button text (assumes format "Sensor Group X").
         var buttonText = $(this).text().trim();
-        var groupId = parseInt(buttonText.split(" ")[2]);  // Splits "Sensor Group 1" and takes the 3rd part
+        var groupId = parseInt(buttonText.split(" ")[1]);
 
         // Set the global variable to persist the selection.
         currentGroup = groupId;
