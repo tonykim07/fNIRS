@@ -482,15 +482,39 @@
 
     function getPwmControlValue(type) {
       let value = 0;
-      for (let i = 0; i < 8; i++) {
-        const index = type === 'h' ? 15 - i : 7 - i;
-        const checkbox = document.getElementById(`emitter_${index}`);
-        if (checkbox && checkbox.checked) {
-          value |= (1 << i);
+      if (type === 'l') {
+        // For lower register: channels 0-7 come from emitters 0-3.
+        for (let emitter = 0; emitter < 4; emitter++) {
+          // 660nm channel (even channel: 2*emitter)
+          const checkbox660 = document.getElementById(`emitter_${emitter}_660`);
+          if (checkbox660 && checkbox660.checked) {
+            value |= (1 << (2 * emitter));
+          }
+          // 940nm channel (odd channel: 2*emitter + 1)
+          const checkbox940 = document.getElementById(`emitter_${emitter}_940`);
+          if (checkbox940 && checkbox940.checked) {
+            value |= (1 << (2 * emitter + 1));
+          }
+        }
+      } else if (type === 'h') {
+        // For higher register: channels 8-15 come from emitters 4-7.
+        // We map these channels to bit positions 0-7 in the high register.
+        for (let emitter = 4; emitter < 8; emitter++) {
+          // Determine bit position in the high register for emitter X.
+          let bitPos = (emitter - 4) * 2;
+          const checkbox660 = document.getElementById(`emitter_${emitter}_660`);
+          if (checkbox660 && checkbox660.checked) {
+            value |= (1 << bitPos);
+          }
+          const checkbox940 = document.getElementById(`emitter_${emitter}_940`);
+          if (checkbox940 && checkbox940.checked) {
+            value |= (1 << (bitPos + 1));
+          }
         }
       }
       return value;
     }
+
 
     function updateUI() {
       const emitterOverrideEnabled = document.getElementById('emitter_control_override_enable').checked;
