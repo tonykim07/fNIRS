@@ -176,10 +176,6 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
 
     for (pwm_channel_E i = (pwm_channel_E)0U; i < NUM_OF_PWM_CHANNELS; i++)
     {
-//        if (emitter_control_vars.duty_cycle[i] != pwm_config.duty_cycle[i] || emitter_control_vars.phase_shift[i] != pwm_config.phase_shift[i])
-//        {
-//            pwm_driver_update_individual_patterns(&pwm_config, i, emitter_control_vars.duty_cycle[i], emitter_control_vars.phase_shift[i]);
-//        }
         pwm_driver_update_individual_patterns(&pwm_config, i, emitter_control_vars.duty_cycle[i], emitter_control_vars.phase_shift[i]);
     }
 }
