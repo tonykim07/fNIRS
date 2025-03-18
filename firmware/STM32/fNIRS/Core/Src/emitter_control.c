@@ -228,7 +228,7 @@ void emitter_control_state_machine(void)
     bool run_state_machine = isr_get_half_second_flag();
     bool user_override_enabled = serial_interface_rx_get_user_emitter_control_override_enable();
     
-    if (run_state_machine || user_override_enabled)
+    if (run_state_machine || (user_override_enabled && curr_state != CYCLING))
     {
         switch (curr_state)
         {
