@@ -1,3 +1,46 @@
+# import serial
+# import struct
+# import numpy as np
+
+# # Set up serial connection (adjust the port and baud rate as necessary)
+# ser = serial.Serial('/dev/tty.usbmodem205E386D47311', 115200, timeout=1)  # Replace with your actual port
+
+# # Function to parse the packet data into an 8x5 NumPy array
+# def parse_packet(data):
+#     parsed_data = np.zeros((8, 5), dtype=int)  # Initialize an 8x5 array
+
+#     for i in range(8):  # Loop through the 8 sensor groups
+#         offset = i * 8  # Each group occupies 8 bytes
+#         packet_identifier = data[offset]
+#         sensor_channel_1 = struct.unpack('>H', data[offset+1:offset+3])[0]
+#         sensor_channel_2 = struct.unpack('>H', data[offset+3:offset+5])[0]
+#         sensor_channel_3 = struct.unpack('>H', data[offset+5:offset+7])[0]
+#         emitter_status = data[offset+7]
+        
+#         # Store parsed values in the NumPy array
+#         parsed_data[i] = [packet_identifier, sensor_channel_1, sensor_channel_2, sensor_channel_3, emitter_status]
+    
+#     return parsed_data  # Return 8x5 structured data
+
+# # Function to read data from the serial port and return the parsed array
+# def read_data_from_serial():
+#     """ Reads 64 bytes from serial and returns the parsed 8x5 array. """
+#     data = ser.read(64)  # Expecting 64 bytes (8 sensor groups * 8 bytes per group)
+#     if len(data) == 64:
+#         return parse_packet(data)  # Return parsed data
+#     else:
+#         print("⚠️ No valid data received from the serial port.")
+#         return None  # Return None if data is invalid
+
+# # Main loop to continuously read and display sensor data
+# if __name__ == "__main__":
+#     while True:
+#         sensor_data = read_data_from_serial()
+#         if sensor_data is not None:
+#             print("\nFormatted Sensor Data (8x5 Array):")
+#             print(sensor_data)
+#             print("\nEach row represents: [Group ID, Short, Long1, Long2, Mode]")
+
 import serial
 import struct
 import numpy as np
@@ -111,6 +154,7 @@ class DataProcessor:
 # --------------------------------------Beer Lambert Law processing-------------------------------------------- #
 
 
+
 # Function to parse the packet data into an 8x5 NumPy array
 def parse_packet(data):
     global sensor_sums, sensor_counts, previous_emitter_status, latest_emitter_status
@@ -162,50 +206,41 @@ def read_data_from_serial():
     else:
         print("⚠️ No valid data received from the serial port.")
         return None  # Return None if data is invalid
-    
-
-if __name__ == '__main__':
-    processor = DataProcessor()
-    dummy_gen = dummy_packet_generator()
-    print("Starting processing.\n")
-    try:
-        while True:
-            packet = next(dummy_gen)
-            result = processor.process_data_packet(packet)
-            if result is not None:
-                concentrations, table_data = result
-                print("Latest Concentration Values (48 channels):")
-                print(tabulate(table_data, headers=["Channel", "Type", "Concentration"]))
-                print("-" * 500)
-                print("Data Sent to GUI Graphing Function: ", concentrations)
-                print("-" * 500)
-    except KeyboardInterrupt:
-        print("Stopping processing.")
 
 # Main loop to continuously read and display sensor data
+# if __name__ == "__main__":
+#     while True:
+#         sensor_data = read_data_from_serial()
+#         if sensor_data is not None:
+#             # Check if emitter status changed
+#             if latest_emitter_status != previous_emitter_status[0]:
+#                 # Compute and send averaged data
+#                 averaged_data = compute_and_reset_averages()
+#                 print("\nAveraged Sensor Data (8x5 Array):")
+#                 print(averaged_data)
+#                 print("\nEach row represents: [Group ID, Avg Short, Avg Long1, Avg Long2, Mode]")
+                
+#                 # Update previous emitter status
+#                 previous_emitter_status.fill(latest_emitter_status)
+
 if __name__ == "__main__":
     processor = DataProcessor()
+    prev_packet = None
+    
     while True:
         packet = read_data_from_serial()
-        result = processor.process_data_packet(packet)
         if packet is not None:
-            # Check if emitter status changed
-            if latest_emitter_status != previous_emitter_status[0]:
-                # Compute and send averaged data
-                averaged_data = compute_and_reset_averages()
-
-                # print("\nAveraged Sensor Data (8x5 Array):")
-                # print(averaged_data)
-                # print("\nEach row represents: [Group ID, Avg Short, Avg Long1, Avg Long2, Mode]")
-
-                result = processor.process_data_packet(averaged_data)
-
-                concentrations, table_data = result
+            latest_emitter_status = packet[0, 4]
+            
+            if prev_packet is None:
+                prev_packet = packet
+            else:
+                concentrations, table_data = processor.process_data_packets(prev_packet, packet)
                 print("Latest Concentration Values (48 channels):")
                 print(tabulate(table_data, headers=["Channel", "Type", "Concentration"]))
                 print("-" * 500)
                 print("Data Sent to GUI Graphing Function: ", concentrations)
                 print("-" * 500)
-                
-                # Update previous emitter status
-                previous_emitter_status.fill(latest_emitter_status)
+                prev_packet = None
+                previous_emitter_status = latest_emitter_status
+
