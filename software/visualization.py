@@ -1,4 +1,6 @@
 import eventlet
+import serial
+import json
 eventlet.monkey_patch()
 
 import logging
@@ -13,6 +15,7 @@ from data_handler import get_latest_data, sio
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
+ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
@@ -536,8 +539,13 @@ def update_control_data():
     data = request.json
     control_data.update(data)
     logging.info(f"Control data updated: {control_data}")
+
+    values_list = list(control_data.values())
+    data_bytes = bytes(values_list)
+    ser.write(data_bytes)
+    print(data_bytes)
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
-    sio.connect('http://localhost:5000', transports=['websocket'])
+    sio.connect('http://127.0.0.1:5000', transports=['websocket'])
     socketio.run(app, debug=True, use_reloader=False, port=8050)
