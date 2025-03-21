@@ -18,15 +18,15 @@ uint16_t isr_get_1khz_timer_ticks(void)
     return isr_vars.tim4_timer_ticks;
 }
 
-bool isr_get_half_second_flag(void)
+bool isr_get_emitter_control_timer_flag(void)
 {
-    return isr_vars.half_second_flag;
+    return isr_vars.emitter_control_timer_flag;
 }
 
-void isr_reset_half_second_flag(void)
+void isr_reset_emitter_control_timer_flag(void)
 {
     isr_vars.tim4_timer_ticks = 0U;
-    isr_vars.half_second_flag = false;
+    isr_vars.emitter_control_timer_flag = false;
 }
 
 /* CALLBACK FUNCTIONS */
@@ -37,10 +37,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 	serial_interface_tx_send_sensor_data();
     isr_vars.tim4_timer_ticks++;
 
+    // Note: tim4_timer_ticks is reset by emitter control
     if (isr_vars.tim4_timer_ticks >= MS_TO_1KHZ_TICKS(5000))
     {
         // This flag will be read by emitter control
-        isr_vars.half_second_flag = true;
+        isr_vars.emitter_control_timer_flag = true;
     }
 }
 

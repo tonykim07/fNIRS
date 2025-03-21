@@ -221,7 +221,7 @@ void emitter_control_state_machine(void)
 {
     emitter_control_state_E curr_state = emitter_control_vars.curr_state;
     emitter_control_state_E next_state = curr_state;
-    bool run_state_machine = isr_get_half_second_flag();
+    bool run_state_machine = isr_get_emitter_control_timer_flag();
     bool user_override_enabled = serial_interface_rx_get_user_emitter_control_override_enable();
     
     if (run_state_machine || (user_override_enabled && curr_state != CYCLING))
@@ -268,7 +268,7 @@ void emitter_control_state_machine(void)
         emitter_control_vars.timer++;
         emitter_control_update_pwm_channels(curr_state);
         emitter_control_vars.curr_state = next_state;
-        isr_reset_half_second_flag();
+        isr_reset_emitter_control_timer_flag();
     }
 }
 
