@@ -539,5 +539,5 @@ def update_control_data():
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
-    sio.connect('http://localhost:5000', transports=['websocket'])
+    sio.connect('http://127.0.0.1:5000', transports=['websocket'])
     socketio.run(app, debug=True, use_reloader=False, port=8050)
