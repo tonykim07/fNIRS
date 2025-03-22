@@ -19,7 +19,7 @@
     }
 
     h1,
-    h3 {
+    h5 {
       color: #004085;
     }
 
@@ -83,6 +83,12 @@
       width: 100%;
       height: 800px;
     }
+
+    .custom-legend {
+      font-size: 18px;
+      /* Increase legend text size */
+      line-height: 1.5;
+    }
   </style>
 </head>
 
@@ -99,6 +105,30 @@
         <div class="card mb-4">
           <div class="card-header">3D Brain Mesh with Sensor Nodes</div>
           <div class="card-body">
+            <!-- Custom Legend -->
+            <div class="custom-legend mb-3">
+              <div>
+                <strong>Sensor Type:</strong>
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: white; border: 1px solid #ccc; margin: 0 5px;"></span>
+                Emitter,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: black; margin: 0 5px;"></span>
+                Detector
+              </div>
+              <div>
+                <strong>Highlights:</strong>
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: #39FF14; margin: 0 5px;"></span>
+                940nm wavelength,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: #32CD32; margin: 0 5px;"></span>
+                660nm wavelength,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: yellow; margin: 0 5px;"></span>
+                Sensor Group Mapping
+              </div>
+            </div>
             <div id="brainMeshContainer"></div>
           </div>
         </div>
@@ -133,7 +163,7 @@
           <div class="card-body">
             <!-- MUX Control Section -->
             <div class="mb-4">
-              <h3>MUX Control</h3>
+              <h5>MUX Control</h5>
               <div class="mb-2">
                 <label for="mux_control_override_enable">Override Enable:</label>
                 <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
@@ -151,7 +181,7 @@
 
             <!-- Emitter Control Section -->
             <div>
-              <h3>Emitter Control</h3>
+              <h5>Emitter Control</h5>
               <div class="mb-2">
                 <label for="emitter_control_override_enable">Override Enable:</label>
                 <input type="checkbox" id="emitter_control_override_enable" onchange="updateControlData()">
@@ -588,20 +618,20 @@
       var endpoint = currentGroup !== null ? '/select_group/' + currentGroup : '/update_graphs';
       $.getJSON(endpoint, function (data) {
         // Update brain mesh
-        if (data.brain_mesh) {
-          const brainFig = JSON.parse(data.brain_mesh);
+          if (data.brain_mesh) {
+            const brainFig = JSON.parse(data.brain_mesh);
           var brainDiv = document.getElementById("brainMeshContainer");
           // Use currentCamera if available, otherwise try to get the current camera from the existing layout.
-          if (currentCamera) {
-            brainFig.layout.scene.camera = currentCamera;
+            if (currentCamera) {
+              brainFig.layout.scene.camera = currentCamera;
           } else if (brainDiv && brainDiv._fullLayout && brainDiv._fullLayout.scene && brainDiv._fullLayout.scene.camera) {
             brainFig.layout.scene.camera = brainDiv._fullLayout.scene.camera;
-          }
-          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
-            if (currentCamera) {
-              Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
             }
-            attachCameraListener();
+          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
+              if (currentCamera) {
+                Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
+              }
+              attachCameraListener();
             updateEmitterColors();
           });
         }
