@@ -15,7 +15,7 @@ pg.setConfigOption('foreground', 'k')             # Black text and lines.
 sio = socketio.Client()
 
 # For each group (8 total) and for each trace (3 per group), store the last 5000 datapoints.
-data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
+data = [[collections.deque(maxlen=2000) for _ in range(3)] for _ in range(8)]
 
 # Create a Qt Application.
 app = QtWidgets.QApplication([])
@@ -77,7 +77,7 @@ timer.timeout.connect(update)
 timer.start(1)  # The actual refresh rate may vary by system performance.
 
 # Connect the SocketIO client.
-sio.connect('http://localhost:5000')
+sio.connect('http://127.0.0.1:5000')
 
 if __name__ == '__main__':
     sys.exit(app.exec_())
