@@ -43,10 +43,10 @@ def sensor_data_task():
             socketio.emit('processed_data', {'sensor_array': sensor_array.tolist()})
             print("\nSensor Values (1D Array of 24):")
             print(sensor_array)
-            time.sleep(0.01)
+            # time.sleep(0.01)
         else:
             print("No valid data received. Waiting...")
-            time.sleep(0.1)
+            # time.sleep(0.1)
 
 if __name__ == '__main__':
     socketio.start_background_task(sensor_data_task)

@@ -6,6 +6,7 @@
 
 /* DEFINES */
 #define MS_TO_1KHZ_TICKS(ms) ((ms) * (1U))
+#define MS_TO_100HZ_TICKS(ms) ((ms) / (10U))
 
 /* DATA STRUCTURES */
 
@@ -32,13 +33,14 @@ void isr_reset_emitter_control_timer_flag(void)
 /* CALLBACK FUNCTIONS */
 
 // ISR function - called every 1kHz (TIM4)
+// Updated: called every 100Hz (TIM4) - see prescale and arr values
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 	serial_interface_tx_send_sensor_data();
     isr_vars.tim4_timer_ticks++;
 
     // Note: tim4_timer_ticks is reset by emitter control
-    if (isr_vars.tim4_timer_ticks >= MS_TO_1KHZ_TICKS(5000))
+    if (isr_vars.tim4_timer_ticks >= MS_TO_100HZ_TICKS(5000))
     {
         // This flag will be read by emitter control
         isr_vars.emitter_control_timer_flag = true;

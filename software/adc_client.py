@@ -15,7 +15,7 @@ pg.setConfigOption('foreground', 'k')             # Black text and lines.
 sio = socketio.Client()
 
 # For each group (8 total) and for each trace (3 per group), store the last 5000 datapoints.
-data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
+data = [[collections.deque(maxlen=2000) for _ in range(3)] for _ in range(8)]
 
 # Create a Qt Application.
 app = QtWidgets.QApplication([])
