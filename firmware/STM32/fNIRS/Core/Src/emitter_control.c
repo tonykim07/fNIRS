@@ -176,10 +176,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
 
     for (pwm_channel_E i = (pwm_channel_E)0U; i < NUM_OF_PWM_CHANNELS; i++)
     {
-        if (emitter_control_vars.duty_cycle[i] != pwm_config.duty_cycle[i] || emitter_control_vars.phase_shift[i] != pwm_config.phase_shift[i])
-        {
-            pwm_driver_update_individual_patterns(&pwm_config, i, emitter_control_vars.duty_cycle[i], emitter_control_vars.phase_shift[i]);
-        }
+        pwm_driver_update_individual_patterns(&pwm_config, i, emitter_control_vars.duty_cycle[i], emitter_control_vars.phase_shift[i]);
     }
 }
 
@@ -224,14 +221,15 @@ void emitter_control_state_machine(void)
 {
     emitter_control_state_E curr_state = emitter_control_vars.curr_state;
     emitter_control_state_E next_state = curr_state;
-    bool run_state_machine = isr_get_half_second_flag();
+    bool run_state_machine = isr_get_emitter_control_timer_flag();
+    bool user_override_enabled = serial_interface_rx_get_user_emitter_control_override_enable();
     
-    if (run_state_machine)
+    if (run_state_machine || (user_override_enabled && curr_state != CYCLING))
     {
         switch (curr_state)
         {
             case DISABLED: 
-                if (emitter_control_vars.emitter_control_enabled)
+                if (emitter_control_vars.emitter_control_enabled || emitter_control_vars.requested_state != curr_state)
                 {
                     next_state = IDLE;
                 }
@@ -242,7 +240,7 @@ void emitter_control_state_machine(void)
                 {
                     next_state = DISABLED;
                 }
-                else if (emitter_control_vars.requested_state != IDLE)
+                else if (emitter_control_vars.requested_state != curr_state)
                 {
                     next_state = emitter_control_vars.requested_state;
                 }
@@ -270,7 +268,7 @@ void emitter_control_state_machine(void)
         emitter_control_vars.timer++;
         emitter_control_update_pwm_channels(curr_state);
         emitter_control_vars.curr_state = next_state;
-        isr_reset_half_second_flag();
+        isr_reset_emitter_control_timer_flag();
     }
 }
 

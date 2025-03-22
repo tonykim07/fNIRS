@@ -1,5 +1,5 @@
 ../Core/Src/isr.c:16:10:isr_get_1khz_timer_ticks	1
-../Core/Src/isr.c:21:6:isr_get_half_second_flag	1
-../Core/Src/isr.c:26:6:isr_reset_half_second_flag	1
+../Core/Src/isr.c:21:6:isr_get_emitter_control_timer_flag	1
+../Core/Src/isr.c:26:6:isr_reset_emitter_control_timer_flag	1
 ../Core/Src/isr.c:35:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/isr.c:48:6:HAL_ADC_ConvCpltCallback	1
+../Core/Src/isr.c:49:6:HAL_ADC_ConvCpltCallback	1

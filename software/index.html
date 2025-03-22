@@ -19,7 +19,7 @@
     }
 
     h1,
-    h3 {
+    h5 {
       color: #004085;
     }
 
@@ -83,6 +83,12 @@
       width: 100%;
       height: 800px;
     }
+
+    .custom-legend {
+      font-size: 18px;
+      /* Increase legend text size */
+      line-height: 1.5;
+    }
   </style>
 </head>
 
@@ -99,6 +105,30 @@
         <div class="card mb-4">
           <div class="card-header">3D Brain Mesh with Sensor Nodes</div>
           <div class="card-body">
+            <!-- Custom Legend -->
+            <div class="custom-legend mb-3">
+              <div>
+                <strong>Sensor Type:</strong>
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: white; border: 1px solid #ccc; margin: 0 5px;"></span>
+                Emitter,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: black; margin: 0 5px;"></span>
+                Detector
+              </div>
+              <div>
+                <strong>Highlights:</strong>
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: #39FF14; margin: 0 5px;"></span>
+                940nm wavelength,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: #32CD32; margin: 0 5px;"></span>
+                660nm wavelength,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: yellow; margin: 0 5px;"></span>
+                Sensor Group Mapping
+              </div>
+            </div>
             <div id="brainMeshContainer"></div>
           </div>
         </div>
@@ -133,7 +163,7 @@
           <div class="card-body">
             <!-- MUX Control Section -->
             <div class="mb-4">
-              <h3>MUX Control</h3>
+              <h5>MUX Control</h5>
               <div class="mb-2">
                 <label for="mux_control_override_enable">Override Enable:</label>
                 <input type="checkbox" id="mux_control_override_enable" onchange="updateControlData()">
@@ -151,7 +181,7 @@
 
             <!-- Emitter Control Section -->
             <div>
-              <h3>Emitter Control</h3>
+              <h5>Emitter Control</h5>
               <div class="mb-2">
                 <label for="emitter_control_override_enable">Override Enable:</label>
                 <input type="checkbox" id="emitter_control_override_enable" onchange="updateControlData()">
@@ -181,43 +211,43 @@
                   <tbody>
                     <tr>
                       <td>Emitter 0</td>
-                      <td><input type="checkbox" id="emitter_0_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_0_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_0_940"></td>
+                      <td><input type="checkbox" id="emitter_0_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 1</td>
-                      <td><input type="checkbox" id="emitter_1_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_1_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_1_940"></td>
+                      <td><input type="checkbox" id="emitter_1_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 2</td>
-                      <td><input type="checkbox" id="emitter_2_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_2_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_2_940"></td>
+                      <td><input type="checkbox" id="emitter_2_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 3</td>
-                      <td><input type="checkbox" id="emitter_3_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_3_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_3_940"></td>
+                      <td><input type="checkbox" id="emitter_3_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 4</td>
-                      <td><input type="checkbox" id="emitter_4_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_4_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_4_940"></td>
+                      <td><input type="checkbox" id="emitter_4_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 5</td>
-                      <td><input type="checkbox" id="emitter_5_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_5_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_5_940"></td>
+                      <td><input type="checkbox" id="emitter_5_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 6</td>
-                      <td><input type="checkbox" id="emitter_6_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_6_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_6_940"></td>
+                      <td><input type="checkbox" id="emitter_6_660"></td>
                     </tr>
                     <tr>
                       <td>Emitter 7</td>
-                      <td><input type="checkbox" id="emitter_7_940" onchange="updateControlData()"></td>
-                      <td><input type="checkbox" id="emitter_7_660" onchange="updateControlData()"></td>
+                      <td><input type="checkbox" id="emitter_7_940"></td>
+                      <td><input type="checkbox" id="emitter_7_660"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -355,8 +385,9 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
   <script>
-    // LED green color; adjust as needed.
-    const LED_GREEN = "#39FF14";
+    // Define LED colors:
+    const LED_GREEN = "#39FF14";     // Bright LED green for 940nm
+    const LED_DIM_GREEN = "#32CD32"; // Dimmer LED green for 660nm
     const WHITE = "white";
 
     var currentGroup = null;  // global variable to store the selected group
@@ -372,40 +403,69 @@
         brainDiv.on('plotly_relayout', function (eventData) {
           if (eventData['scene.camera']) {
             currentCamera = eventData['scene.camera'];
-            // Debug log:
-            console.log("Camera updated:", currentCamera);
+            // console.log("Camera updated:", currentCamera);
           }
         });
       }
     }
 
-    // This function updates the emitter capsule colors based on PWM checkbox states.
-    function updateEmitterColors() {
-      // We assume you have 8 emitters.
-      var emitterColors = [];
-      for (var i = 0; i < 8; i++) {
-        // Check if either wavelength control for emitter i is checked.
-        var isActive = $("#emitter_" + i + "_940").is(":checked") || $("#emitter_" + i + "_660").is(":checked");
-        emitterColors.push(isActive ? LED_GREEN : WHITE);
+    // Enforce that only one checkbox per emitter can be checked
+    function handleEmitterCheckboxChange(emitterIndex, wavelength) {
+      if (wavelength === '940') {
+        if ($("#emitter_" + emitterIndex + "_940").is(":checked")) {
+          // Uncheck the 660nm checkbox for the same emitter.
+          $("#emitter_" + emitterIndex + "_660").prop("checked", false);
+        }
+      } else if (wavelength === '660') {
+        if ($("#emitter_" + emitterIndex + "_660").is(":checked")) {
+          // Uncheck the 940nm checkbox for the same emitter.
+          $("#emitter_" + emitterIndex + "_940").prop("checked", false);
+        }
       }
+      // After enforcing exclusivity, update control data.
+      updateControlData();
+    }
 
-      // Get the brain mesh Plotly div.
+    // Function to update emitter colors in the Plotly brain mesh.
+    function updateEmitterColors() {
       var brainDiv = document.getElementById("brainMeshContainer");
       if (!brainDiv || !brainDiv.data) return;
 
-      // Identify the emitter traces.
-      // (We assume emitter traces were added in the same order as emitter_positions.)
+      // Get emitter control state from the select element.
+      var emitterControlState = parseInt($("#emitter_control_state").val());
+      var emitterColors = [];
+
+      // If FULLY_ENABLED_940NM is selected (value 5), use LED_GREEN for all emitters.
+      if (emitterControlState === 5) {
+        for (var i = 0; i < 8; i++) {
+          emitterColors.push(LED_GREEN);
+        }
+      }
+      // If FULLY_ENABLED_660NM is selected (value 6), use LED_DIM_GREEN for all emitters.
+      else if (emitterControlState === 6) {
+        for (var i = 0; i < 8; i++) {
+          emitterColors.push(LED_DIM_GREEN);
+        }
+      }
+      // Otherwise, use individual checkbox values.
+      else {
+        for (var i = 0; i < 8; i++) {
+          if ($("#emitter_" + i + "_940").is(":checked")) {
+            emitterColors.push(LED_GREEN);
+          } else if ($("#emitter_" + i + "_660").is(":checked")) {
+            emitterColors.push(LED_DIM_GREEN);
+          } else {
+            emitterColors.push(WHITE);
+          }
+        }
+      }
+
+      // Identify the emitter traces in the Plotly graph.
       var emitterTraceIndices = [];
-      var count = 0;
       for (var i = 0; i < brainDiv.data.length; i++) {
         if (brainDiv.data[i].name === "Emitter") {
           emitterTraceIndices.push(i);
-          count++;
         }
-      }
-      // If the number of emitter traces doesn't match, log a warning.
-      if (emitterTraceIndices.length !== emitterColors.length) {
-        console.warn("Emitter trace count and emitter color count do not match!");
       }
 
       // Update each emitter trace's color.
@@ -414,7 +474,31 @@
       });
     }
 
+
+    // Attach a click handler to each sensor group button.
     $(document).ready(function () {
+      for (var i = 0; i < 8; i++) {
+        // When the 940nm checkbox is changed.
+        $("#emitter_" + i + "_940").on("change", function () {
+          var emitterIndex = this.id.split('_')[1];
+          if ($(this).is(":checked")) {
+            // Uncheck the corresponding 660nm checkbox.
+            $("#emitter_" + emitterIndex + "_660").prop("checked", false);
+          }
+          updateControlData();
+        });
+
+        // When the 660nm checkbox is changed.
+        $("#emitter_" + i + "_660").on("change", function () {
+          var emitterIndex = this.id.split('_')[1];
+          if ($(this).is(":checked")) {
+            // Uncheck the corresponding 940nm checkbox.
+            $("#emitter_" + emitterIndex + "_940").prop("checked", false);
+          }
+          updateControlData();
+        });
+      }
+
       // Attach a click handler to each sensor group button.
       $(".custom-btn-group button").click(function () {
         // Extract the group number from the button text (assumes format "Sensor Group X").
@@ -458,6 +542,7 @@
       mux_control_state: 0
     };
 
+    // Update control data based on user input
     function updateControlData() {
       controlData.emitter_control_override_enable = document.getElementById('emitter_control_override_enable').checked ? 1 : 0;
       controlData.emitter_control_state = parseInt(document.getElementById('emitter_control_state').value);
@@ -480,18 +565,44 @@
       updateEmitterColors();
     }
 
+    // Helper function to get PWM control value based on emitter selection
     function getPwmControlValue(type) {
       let value = 0;
-      for (let i = 0; i < 8; i++) {
-        const index = type === 'h' ? 15 - i : 7 - i;
-        const checkbox = document.getElementById(`emitter_${index}`);
-        if (checkbox && checkbox.checked) {
-          value |= (1 << i);
+      if (type === 'l') {
+        // For lower register: channels 0-7 come from emitters 0-3.
+        for (let emitter = 0; emitter < 4; emitter++) {
+          // 660nm channel (even channel: 2*emitter)
+          const checkbox660 = document.getElementById(`emitter_${emitter}_660`);
+          if (checkbox660 && checkbox660.checked) {
+            value |= (1 << (2 * emitter));
+          }
+          // 940nm channel (odd channel: 2*emitter + 1)
+          const checkbox940 = document.getElementById(`emitter_${emitter}_940`);
+          if (checkbox940 && checkbox940.checked) {
+            value |= (1 << (2 * emitter + 1));
+          }
+        }
+      } else if (type === 'h') {
+        // For higher register: channels 8-15 come from emitters 4-7.
+        // We map these channels to bit positions 0-7 in the high register.
+        for (let emitter = 4; emitter < 8; emitter++) {
+          // Determine bit position in the high register for emitter X.
+          let bitPos = (emitter - 4) * 2;
+          const checkbox660 = document.getElementById(`emitter_${emitter}_660`);
+          if (checkbox660 && checkbox660.checked) {
+            value |= (1 << bitPos);
+          }
+          const checkbox940 = document.getElementById(`emitter_${emitter}_940`);
+          if (checkbox940 && checkbox940.checked) {
+            value |= (1 << (bitPos + 1));
+          }
         }
       }
       return value;
     }
 
+
+    // Update UI based on control data
     function updateUI() {
       const emitterOverrideEnabled = document.getElementById('emitter_control_override_enable').checked;
       const muxOverrideEnabled = document.getElementById('mux_control_override_enable').checked;
@@ -507,20 +618,20 @@
       var endpoint = currentGroup !== null ? '/select_group/' + currentGroup : '/update_graphs';
       $.getJSON(endpoint, function (data) {
         // Update brain mesh
-        if (data.brain_mesh) {
-          const brainFig = JSON.parse(data.brain_mesh);
+          if (data.brain_mesh) {
+            const brainFig = JSON.parse(data.brain_mesh);
           var brainDiv = document.getElementById("brainMeshContainer");
           // Use currentCamera if available, otherwise try to get the current camera from the existing layout.
-          if (currentCamera) {
-            brainFig.layout.scene.camera = currentCamera;
+            if (currentCamera) {
+              brainFig.layout.scene.camera = currentCamera;
           } else if (brainDiv && brainDiv._fullLayout && brainDiv._fullLayout.scene && brainDiv._fullLayout.scene.camera) {
             brainFig.layout.scene.camera = brainDiv._fullLayout.scene.camera;
-          }
-          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
-            if (currentCamera) {
-              Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
             }
-            attachCameraListener();
+          Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
+              if (currentCamera) {
+                Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
+              }
+              attachCameraListener();
             updateEmitterColors();
           });
         }

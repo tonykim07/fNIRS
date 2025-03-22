@@ -17,8 +17,8 @@ typedef enum
     DEFAULT_MODE,
     USER_CONTROL, 
     CYCLING,
-    FULLY_ENABLED_940NM,
     FULLY_ENABLED_660NM, 
+    FULLY_ENABLED_940NM,
 
     NUM_OF_EMIITER_CONTROL_STATES,
 } emitter_control_state_E;
