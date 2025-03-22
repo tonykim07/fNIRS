@@ -77,7 +77,7 @@ timer.timeout.connect(update)
 timer.start(1)  # The actual refresh rate may vary by system performance.
 
 # Connect the SocketIO client.
-sio.connect('http://localhost:5000')
+sio.connect('http://127.0.0.1:5000')
 
 if __name__ == '__main__':
     sys.exit(app.exec_())

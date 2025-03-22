@@ -15,7 +15,7 @@ from data_handler import get_latest_data, sio
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
-ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
+ser = serial.Serial('/dev/tty.usbmodem205E386D47311', baudrate=9600, timeout=1) 
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
