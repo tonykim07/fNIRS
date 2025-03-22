@@ -1,3 +1,5 @@
+# ADC => 0 - 4095
+
 import eventlet
 eventlet.monkey_patch()
 
@@ -16,7 +18,7 @@ def index():
     return "<h2>Sensor Data Server Running</h2>"
 
 # Set up the serial connection (adjust the port as needed)
-ser = serial.Serial('/dev/tty.usbmodem205E386D47311', 9600, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 9600, timeout=1)
 
 def parse_packet_to_flat_array(data):
     """

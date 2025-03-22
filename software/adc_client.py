@@ -1,15 +1,20 @@
 import sys
 import socketio
 import collections
-from pyqtgraph.Qt import QtWidgets, QtCore
+from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
 import pyqtgraph as pg
 import engineio.base_client
 engineio.base_client.printExc = lambda *args, **kwargs: None
 
+# Modern UI configuration:
+pg.setConfigOption('antialias', True)             # Smoother curves and text.
+pg.setConfigOption('background', 'w')             # White background.
+pg.setConfigOption('foreground', 'k')             # Black text and lines.
+
 # Create a SocketIO client instance.
 sio = socketio.Client()
 
-# For each group (8 total) and for each trace (3 per group), store the last 500 datapoints.
+# For each group (8 total) and for each trace (3 per group), store the last 5000 datapoints.
 data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 
 # Create a Qt Application.
@@ -24,7 +29,8 @@ plots = []
 curves = []  # curves[group][trace]
 for group in range(8):
     p = win.addPlot(title=f"Group {group+1}")
-    p.showGrid(x=True, y=True)
+    p.showGrid(x=True, y=True, alpha=0.3)  # Softer grid lines.
+    p.setLabel('bottom', 'Timeframe')      # Set x-axis label.
     group_curves = []
     # Create 3 traces for this group.
     for trace in range(3):
@@ -68,7 +74,7 @@ def update():
 # Create a QTimer to update the plots.
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(1)  # Try a 1 ms interval; actual refresh may depend on your system.
+timer.start(1)  # The actual refresh rate may vary by system performance.
 
 # Connect the SocketIO client.
 sio.connect('http://localhost:5000')
