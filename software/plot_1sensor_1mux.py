@@ -64,7 +64,7 @@ import csv
 import time
 
 # Set up serial connection (adjust the port and baud rate as necessary)
-ser = serial.Serial('/dev/tty.usbmodem205E386D47311', 115200, timeout=1)  # Replace with your actual port
+ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 115200, timeout=1)  # Replace with your actual port
 
 # Set up CSV file
 csv_filename = "sensor_data.csv"
