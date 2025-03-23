@@ -1,10 +1,24 @@
 import sys
 import socketio
 import collections
+import signal
+
 from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
 import pyqtgraph as pg
 import engineio.base_client
 engineio.base_client.printExc = lambda *args, **kwargs: None
+
+# Signal handler to exit the application gracefully.
+def signal_handler(sig, frame):
+    print("Exiting gracefully...")
+    # Disconnect the SocketIO client if needed.
+    if sio.connected:
+        sio.disconnect()
+    # Quit the application event loop.
+    app.quit()
+
+# Register the signal handler for SIGINT.
+signal.signal(signal.SIGINT, signal_handler)
 
 # Modern UI configuration:
 pg.setConfigOption('antialias', True)             # Smoother curves and text.
@@ -43,6 +57,7 @@ for group in range(8):
     if group % 2 == 1:
         win.nextRow()
 
+# SocketIO event handlers
 @sio.event
 def connect():
     print("SocketIO client connected.")
