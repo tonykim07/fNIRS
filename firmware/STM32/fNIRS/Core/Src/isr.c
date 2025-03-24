@@ -38,7 +38,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     isr_vars.tim4_timer_ticks++;
 
     // Note: tim4_timer_ticks is reset by emitter control
-    if (isr_vars.tim4_timer_ticks >= MS_TO_1KHZ_TICKS(5000))
+    if (isr_vars.tim4_timer_ticks >= MS_TO_1KHZ_TICKS(4000))
     {
         // This flag will be read by emitter control
         isr_vars.emitter_control_timer_flag = true;
