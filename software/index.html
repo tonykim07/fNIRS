@@ -117,16 +117,22 @@
                 Detector
               </div>
               <div>
-                <strong>Highlights:</strong>
+                <strong>Sensor Wavelength:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #39FF14; margin: 0 5px;"></span>
                 940nm wavelength,
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #32CD32; margin: 0 5px;"></span>
                 660nm wavelength,
+              </div>
+              <div>
+                <strong>Highlights:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: yellow; margin: 0 5px;"></span>
                 Sensor Group Mapping
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: red; margin: 0 5px;"></span>
+                Activated Regions
               </div>
             </div>
             <div id="brainMeshContainer"></div>
@@ -253,21 +259,22 @@
                 </table>
               </div>
             </div>
-            <!-- Mode Selection Panel -->
-            <div class="card mt-4">
-              <div class="card-header">Mode Selection</div>
-              <div class="card-body">
-                <label for="modeSelect">Select Mode:</label>
-                <select id="modeSelect" onchange="handleModeChange()">
-                  <option value="none">Select a mode</option>
-                  <option value="ADC">ADC</option>
-                  <option value="mBLL">mBLL</option>
-                </select>
-              </div>
-            </div>
-
           </div> <!-- End Card Body for Control Panel -->
         </div> <!-- End Control Panel Card -->
+
+        <!-- Mode Selection Panel -->
+        <div class="card mt-4">
+          <div class="card-header">Mode Selection</div>
+          <div class="card-body">
+            <label for="modeSelect">Select Mode:</label>
+            <select id="modeSelect" onchange="handleModeChange()">
+              <option value="none">Select a mode</option>
+              <option value="ADC">ADC</option>
+              <option value="mBLL">mBLL</option>
+            </select>
+          </div>
+        </div>
+        
       </div> <!-- End Right Column -->
     </div> <!-- End Row -->
   </div>
@@ -275,6 +282,8 @@
   <!-- Load Bootstrap JS and dependencies -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
+
 
   <script>
     // Define LED colors:
@@ -294,6 +303,13 @@
       mux_control_override_enable: 0,
       mux_control_state: 0
     };
+
+    var socket = io();
+    socket.on('brain_mesh_update', function (data) {
+      console.log('Received brain mesh update:', data);
+      const brainFig = JSON.parse(data.brain_mesh);
+      Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout);
+    });
 
     // Attach a listener to capture camera changes.
     // Using Plotly's built-in event handler.
@@ -535,8 +551,6 @@
         else {
           console.error('No brain mesh data received.');
         }
-      }).always(function () {
-        setTimeout(updateGraphs, 1000);
       });
     }
 

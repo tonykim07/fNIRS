@@ -12,17 +12,68 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import numpy as np
 import nibabel as nib
+import threading
+from queue import Queue
 from scipy.spatial import cKDTree
-from data_handler import get_latest_data, sio
+import socketio as sio_client_lib
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 # ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
 
+# -----------------------------------------------------
+# Flask and Socket.IO Setup
+# -----------------------------------------------------
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# -------------------- Helper Functions for Custom Mesh --------------------
+# -----------------------------------------------------
+# Global Variables and Data Queue (for processed packets)
+# -----------------------------------------------------
+current_mode = 'default'  # default mode when the app starts
+# Data queue to store incoming data
+data_queue = Queue(maxsize=20)
+data_lock = threading.Lock()  # Create a lock for synchronization
+
+# -----------------------------------------------------
+# Upstream Socket.IO Client Setup (receives processed_data)
+# -----------------------------------------------------
+sio_client = sio_client_lib.Client()
+
+@sio_client.event
+def connect():
+    logging.info("Connected to upstream server for data.")
+
+@sio_client.event
+def disconnect():
+    logging.info("Disconnected from upstream server.")
+
+@sio_client.event
+def processed_data(data):
+    """Called when a new processed data packet is received."""
+    activation_data = np.array(data['concentrations'])
+    # logging.info(f"Received new data: {activation_data}")
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
+    with data_lock:
+        if data_queue.full():
+            data_queue.get()  # remove oldest if full
+        data_queue.put(activation_data)
+    
+    # Immediately update the graph if in mBLL mode.
+    if current_mode == 'mBLL':
+        update_graphs(activation_data)
+
+def get_most_recent_packet():
+    with data_lock:
+        if not data_queue.empty():
+            return list(data_queue.queue)[-1]
+    return None
+
+
+# -----------------------------------------------------
+# fNIRS Data Processing and Brain Mesh Functions
+# -----------------------------------------------------
 
 def compute_vertex_normals(vertices, triangles):
     """Compute an approximate normal for each vertex in the mesh."""
@@ -89,7 +140,6 @@ def create_flat_cylinder_mesh(center, normal, radius, height=1.0, resolution=20,
     vertices_translated = vertices_rotated + center
     return vertices_translated, faces
 
-# -------------------- Brain Mesh Functions --------------------
 
 def preload_static_data():
     """
@@ -193,7 +243,17 @@ sensor_groups = [
     {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
 ]
 
-# -------------------- Brain Mesh Visualization Functions --------------------
+# Define a mapping: for each hbo sensor (0-23) give its corresponding index in combined_positions (0-23)
+sensor_mapping = [
+    0, 8, 9,    # Group 1: emitter0, detector0, detector1
+    1, 10, 11,  # Group 2: emitter1, detector2, detector3
+    2, 12, 13,  # Group 3: emitter2, detector4, detector5
+    3, 14, 15,  # Group 4: emitter3, detector6, detector7
+    4, 16, 17,  # Group 5: emitter4, detector8, detector9
+    5, 18, 19,  # Group 6: emitter5, detector10, detector11
+    6, 20, 21,  # Group 7: emitter6, detector12, detector13
+    7, 22, 23   # Group 8: emitter7, detector14, detector15
+]
 
 def create_static_brain_mesh(emitter_states):
     """
@@ -261,33 +321,44 @@ def create_static_brain_mesh(emitter_states):
     )
     return fig
 
-def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
+def update_highlighted_regions(fig, hbo_values):
     """
     Update the brain mesh with highlighted regions based on activation data.
     """
-    if activation_data.shape[0] < 20:
-        activation_data = np.pad(activation_data, ((0, 20 - activation_data.shape[0]), (0, 0)), mode='constant')
-    activation_levels = activation_data[:20, frame]
-    highlighted_regions = np.unique(regions[activation_levels > threshold])
+    # print(f"hbo_values: {hbo_values}")
+    
+    highlighted_region_ids = []
+    # Iterate over each hbo sensor value
+    for sensor_idx, value in enumerate(hbo_values):
+        if value < 0:   # Region is activated
+            # Map hbo sensor index to the corresponding combined sensor index.
+            sensor_combined_index = sensor_mapping[sensor_idx]
+            region_id = regions[sensor_combined_index]
+            if region_id > 0:  # valid region
+                highlighted_region_ids.append(region_id)
+    highlighted_region_ids = np.unique(highlighted_region_ids)
+    
     surface_coords = np.column_stack((x, y, z))
     highlighted_coords = []
     highlighted_values = []
-    for idx, region in enumerate(highlighted_regions):
-        if region <= 0:
-            continue
-        region_mask = aal_data == region
+    for region_id in highlighted_region_ids:
+        # Get the voxel coordinates for the region
+        region_mask = aal_data == region_id
         region_voxels = np.argwhere(region_mask)
         region_world_coords = nib.affines.apply_affine(affine, region_voxels)
         filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
         if filtered_coords.size > 0:
+            # Optionally, you might average the hbo values from all sensors mapping to this region.
+            sensor_vals = [hbo_values[i] for i in range(len(hbo_values))
+                           if regions[sensor_mapping[i]] == region_id]
+            avg_val = np.mean(sensor_vals) if sensor_vals else 0
             highlighted_coords.append(filtered_coords)
-            highlighted_values.extend([activation_levels[idx]] * len(filtered_coords))
+            highlighted_values.extend([avg_val] * len(filtered_coords))
+    
     if highlighted_coords:
         highlighted_coords = np.vstack(highlighted_coords)
         highlighted_values = np.array(highlighted_values)
-        min_activation = np.min(highlighted_values)
-        max_activation = np.max(highlighted_values)
-        normalized_values = (highlighted_values - min_activation) / (max_activation - min_activation + 1e-5)
+        # Remove any old highlight traces and add a new one in red.
         fig.data = [trace for trace in fig.data if trace.name != 'Highlighted Regions']
         fig.add_trace(go.Scatter3d(
             x=highlighted_coords[:, 0],
@@ -296,13 +367,10 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
             mode='markers',
             marker=dict(
                 size=2,
-                color=normalized_values,
-                colorscale='Reds',
-                cmin=0,
-                cmax=1,
+                color='red',  # constant red highlighting
                 opacity=0.1
             ),
-            name='Highlighted Regions'
+            # name='Highlighted Regions'
         ))
     return fig
 
@@ -359,6 +427,30 @@ def highlight_sensor_group(fig, group_id):
         ))
     return fig
 
+# -----------------------------------------------------
+# Graph Update Function (called when new data arrives)
+# -----------------------------------------------------
+def update_graphs(latest_packet):
+    print("update_Graphs called")
+    if latest_packet is None:
+        return
+    # In mBLL mode, update the brain mesh with activation data.
+    activation_data = np.array(latest_packet)
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
+
+    # Extract only hbo values: take every even index.
+    hbo_values = activation_data[::2]  # Now an array of 24 values
+
+    # Create a new static brain mesh and update with highlighted regions
+    brain_mesh_fig = create_static_brain_mesh([True]*8)  # assuming 8 emitters
+    brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, hbo_values)
+    
+    # Emit the updated brain mesh to all connected clients.
+    socketio.emit('brain_mesh_update', {'brain_mesh': brain_mesh_fig.to_json()})
+    logging.info("Emitted updated brain mesh.")
+
+
 # -------------------- Global State --------------------
 
 emitter_states = [True] * len(emitter_positions)
@@ -377,26 +469,16 @@ control_data = {
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/data')
-def data():
-    latest_data = get_latest_data()
-    if latest_data is None:
-        return jsonify({'data': []})
-    return jsonify({'data': latest_data.tolist()})
+# @app.route('/data')
+# def data():
+#     latest_data = get_latest_data()
+#     if latest_data is None:
+#         return jsonify({'data': []})
+#     return jsonify({'data': latest_data.tolist()})
 
 @app.route('/update_graphs')
 def update_graphs_route():
-    # latest_data = get_latest_data()
-    # if latest_data is None:
-    #     return jsonify({'brain_mesh': None})
-    
-    # activation_data = np.array(latest_data)
-    # if activation_data.ndim == 1:
-    #     activation_data = activation_data.reshape(-1, 1)
-    
     brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
-    # brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, activation_data, num_frames - 1)
-    
     return jsonify({
         'brain_mesh': brain_mesh_fig.to_json(),
     })
@@ -427,19 +509,34 @@ def update_control_data():
 
 @app.route('/set_mode/<mode>')
 def set_mode(mode):
+    global current_mode
     if mode.lower() == 'adc':
-        # Start adc_server.py and adc_client.py.
-        # Using subprocess.Popen to run them as separate processes.
-        subprocess.Popen(['python', 'adc_mock_server.py'])
-        time.sleep(1)  # Give the server time to start
+        current_mode = 'adc'
+        subprocess.Popen(['python', 'adc_server.py'])
+        time.sleep(1)  # allow server to initialize
         subprocess.Popen(['python', 'adc_client.py'])
         return jsonify({'status': 'ADC mode started'})
     elif mode.lower() == 'mbll':
-        # For mBLL mode, nothing is done for now.
+        current_mode = 'mBLL'
+        # subprocess.Popen(['python', 'mBLL_client.py'])
         return jsonify({'status': 'mBLL mode selected, not implemented yet'})
     else:
         return jsonify({'status': 'Invalid mode selected'}), 400
 
+# -----------------------------------------------------
+# Start the Upstream Client in a Background Thread
+# -----------------------------------------------------
+def run_socketio_client():
+    # Connect to your upstream server (e.g., the one in server.py)
+    sio_client.connect('http://127.0.0.1:5000', transports=['websocket'])
+    sio_client.wait()
+
+# -----------------------------------------------------
+# Main: Start the Flask/Socket.IO server and client thread
+# -----------------------------------------------------
 if __name__ == '__main__':
-    sio.connect('http://127.0.0.1:5000', transports=['websocket'])
+    logging.basicConfig(level=logging.DEBUG)
+    # Start the Socket.IO client that receives processed data.
+    threading.Thread(target=run_socketio_client, daemon=True).start()
+    # Run the Flask-SocketIO server on port 8050.
     socketio.run(app, debug=True, use_reloader=False, port=8050)
