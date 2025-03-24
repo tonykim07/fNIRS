@@ -3,6 +3,7 @@ import serial
 import json
 eventlet.monkey_patch()
 
+import signal
 import time
 import logging
 import subprocess
@@ -70,6 +71,15 @@ def get_most_recent_packet():
             return list(data_queue.queue)[-1]
     return None
 
+# Signal handler to exit the application gracefully.
+def signal_handler(sig, frame):
+    print("Exiting gracefully...")
+    if sio_client.connected:
+        sio_client.disconnect()
+    app.quit()
+    
+# Register the signal handler for SIGINT.
+signal.signal(signal.SIGINT, signal_handler)
 
 # -----------------------------------------------------
 # fNIRS Data Processing and Brain Mesh Functions
@@ -225,36 +235,6 @@ def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     distances, _ = tree.query(coords)
     return coords[distances <= threshold]
 
-# Preload data.
-coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
-emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
-combined_positions = np.vstack((emitter_positions, detector_positions))
-regions = map_points_to_regions(combined_positions, affine, aal_data)
-
-# Define sensor groupings.
-sensor_groups = [
-    {"group_id": 1, "emitter_index": 0, "detector_indices": [0, 1]},
-    {"group_id": 2, "emitter_index": 1, "detector_indices": [2, 3]},
-    {"group_id": 3, "emitter_index": 2, "detector_indices": [4, 5]},
-    {"group_id": 4, "emitter_index": 3, "detector_indices": [6, 7]},
-    {"group_id": 5, "emitter_index": 4, "detector_indices": [8, 9]},
-    {"group_id": 6, "emitter_index": 5, "detector_indices": [10, 11]},
-    {"group_id": 7, "emitter_index": 6, "detector_indices": [12, 13]},
-    {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
-]
-
-# Define a mapping: for each hbo sensor (0-23) give its corresponding index in combined_positions (0-23)
-sensor_mapping = [
-    0, 8, 9,    # Group 1: emitter0, detector0, detector1
-    1, 10, 11,  # Group 2: emitter1, detector2, detector3
-    2, 12, 13,  # Group 3: emitter2, detector4, detector5
-    3, 14, 15,  # Group 4: emitter3, detector6, detector7
-    4, 16, 17,  # Group 5: emitter4, detector8, detector9
-    5, 18, 19,  # Group 6: emitter5, detector10, detector11
-    6, 20, 21,  # Group 7: emitter6, detector12, detector13
-    7, 22, 23   # Group 8: emitter7, detector14, detector15
-]
-
 def create_static_brain_mesh(emitter_states):
     """
     Create a static 3D brain mesh with sensor nodes.
@@ -321,44 +301,97 @@ def create_static_brain_mesh(emitter_states):
     )
     return fig
 
+
+# Preload data.
+coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
+emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
+combined_positions = np.vstack((emitter_positions, detector_positions))
+regions = map_points_to_regions(combined_positions, affine, aal_data)
+brain_mesh_fig = create_static_brain_mesh([True]*8)
+
+
+# Define sensor groupings.
+sensor_groups = [
+    {"group_id": 1, "emitter_index": 0, "detector_indices": [0, 1]},
+    {"group_id": 2, "emitter_index": 1, "detector_indices": [2, 3]},
+    {"group_id": 3, "emitter_index": 2, "detector_indices": [4, 5]},
+    {"group_id": 4, "emitter_index": 3, "detector_indices": [6, 7]},
+    {"group_id": 5, "emitter_index": 4, "detector_indices": [8, 9]},
+    {"group_id": 6, "emitter_index": 5, "detector_indices": [10, 11]},
+    {"group_id": 7, "emitter_index": 6, "detector_indices": [12, 13]},
+    {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
+]
+
+# Define a mapping: for each hbo sensor (0-23) give its corresponding index in combined_positions (0-23)
+sensor_mapping = [
+    0, 8, 9,    # Group 1: emitter0, detector0, detector1
+    1, 10, 11,  # Group 2: emitter1, detector2, detector3
+    2, 12, 13,  # Group 3: emitter2, detector4, detector5
+    3, 14, 15,  # Group 4: emitter3, detector6, detector7
+    4, 16, 17,  # Group 5: emitter4, detector8, detector9
+    5, 18, 19,  # Group 6: emitter5, detector10, detector11
+    6, 20, 21,  # Group 7: emitter6, detector12, detector13
+    7, 22, 23   # Group 8: emitter7, detector14, detector15
+]
+
+# -----------------------------------------------------
+# Precomputation for Region Mappings
+# -----------------------------------------------------
+
+# Precompute sensor-to-region mapping (length 24)
+sensor_region = [regions[sensor_mapping[i]] for i in range(len(sensor_mapping))]
+
+# Precompute region-to-sensor indices for regions of interest.
+region_to_sensor_indices = {}
+for i, reg in enumerate(sensor_region):
+    if reg > 0:
+        region_to_sensor_indices.setdefault(reg, []).append(i)
+
+# Precompute filtered coordinates for each region (using a constant threshold, e.g., 2.0)
+surface_coords = np.column_stack((x, y, z))
+region_filtered = {}
+# Get the unique region IDs from the sensors (only those > 0)
+unique_sensor_regions = np.unique([r for r in sensor_region if r > 0])
+for reg in unique_sensor_regions:
+    region_mask = aal_data == reg
+    region_voxels = np.argwhere(region_mask)
+    region_world_coords = nib.affines.apply_affine(affine, region_voxels)
+    filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
+    region_filtered[reg] = filtered_coords
+
+
+
 def update_highlighted_regions(fig, hbo_values):
     """
     Update the brain mesh with highlighted regions based on activation data.
+    Uses precomputed sensor-to-region mapping, region-to-sensor indices, and
+    precomputed filtered coordinates.
     """
-    # print(f"hbo_values: {hbo_values}")
-    
+    # Collect region IDs from sensors that are activated (hbo value < 0)
     highlighted_region_ids = []
-    # Iterate over each hbo sensor value
-    for sensor_idx, value in enumerate(hbo_values):
-        if value < 0:   # Region is activated
-            # Map hbo sensor index to the corresponding combined sensor index.
-            sensor_combined_index = sensor_mapping[sensor_idx]
-            region_id = regions[sensor_combined_index]
-            if region_id > 0:  # valid region
-                highlighted_region_ids.append(region_id)
+    for i, value in enumerate(hbo_values):
+        if value < 0 and sensor_region[i] > 0:
+            highlighted_region_ids.append(sensor_region[i])
     highlighted_region_ids = np.unique(highlighted_region_ids)
     
-    surface_coords = np.column_stack((x, y, z))
     highlighted_coords = []
     highlighted_values = []
-    for region_id in highlighted_region_ids:
-        # Get the voxel coordinates for the region
-        region_mask = aal_data == region_id
-        region_voxels = np.argwhere(region_mask)
-        region_world_coords = nib.affines.apply_affine(affine, region_voxels)
-        filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
-        if filtered_coords.size > 0:
-            # Optionally, you might average the hbo values from all sensors mapping to this region.
-            sensor_vals = [hbo_values[i] for i in range(len(hbo_values))
-                           if regions[sensor_mapping[i]] == region_id]
-            avg_val = np.mean(sensor_vals) if sensor_vals else 0
+    for reg in highlighted_region_ids:
+        filtered_coords = region_filtered.get(reg)
+        if filtered_coords is not None and filtered_coords.size > 0:
+            # Compute average sensor value from the sensors mapping to this region.
+            indices = region_to_sensor_indices.get(reg, [])
+            if indices:
+                avg_val = np.mean([hbo_values[i] for i in indices])
+            else:
+                avg_val = 0
             highlighted_coords.append(filtered_coords)
             highlighted_values.extend([avg_val] * len(filtered_coords))
     
     if highlighted_coords:
         highlighted_coords = np.vstack(highlighted_coords)
         highlighted_values = np.array(highlighted_values)
-        # Remove any old highlight traces and add a new one in red.
+        # Remove old highlight traces and add new trace.
         fig.data = [trace for trace in fig.data if trace.name != 'Highlighted Regions']
         fig.add_trace(go.Scatter3d(
             x=highlighted_coords[:, 0],
@@ -367,12 +400,13 @@ def update_highlighted_regions(fig, hbo_values):
             mode='markers',
             marker=dict(
                 size=2,
-                color='red',  # constant red highlighting
+                color='red',
                 opacity=0.1
             ),
-            # name='Highlighted Regions'
+            name='Highlighted Regions'
         ))
     return fig
+
 
 def highlight_sensor_group(fig, group_id):
     """
@@ -430,26 +464,35 @@ def highlight_sensor_group(fig, group_id):
 # -----------------------------------------------------
 # Graph Update Function (called when new data arrives)
 # -----------------------------------------------------
+# INFO:root:update_highlighted_regions took 1.4346 seconds, which is 99.94% of update_graphs
 def update_graphs(latest_packet):
-    print("update_Graphs called")
+    global brain_mesh_fig
+    total_start = time.perf_counter()  # start of the function
+    logging.info(f"Updating brain mesh with new data: {latest_packet}")
+    
     if latest_packet is None:
         return
-    # In mBLL mode, update the brain mesh with activation data.
+
+    # Process incoming data
     activation_data = np.array(latest_packet)
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
-
-    # Extract only hbo values: take every even index.
     hbo_values = activation_data[::2]  # Now an array of 24 values
 
-    # Create a new static brain mesh and update with highlighted regions
-    brain_mesh_fig = create_static_brain_mesh([True]*8)  # assuming 8 emitters
+    # Measure the time taken by update_highlighted_regions
+    update_start = time.perf_counter()
     brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, hbo_values)
-    
-    # Emit the updated brain mesh to all connected clients.
-    socketio.emit('brain_mesh_update', {'brain_mesh': brain_mesh_fig.to_json()})
-    logging.info("Emitted updated brain mesh.")
+    update_end = time.perf_counter()
 
+    total_end = time.perf_counter()
+    
+    overall_time = total_end - total_start
+    update_time = update_end - update_start
+    percentage = (update_time / overall_time) * 100 if overall_time else 0
+
+    logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
+    
+    socketio.emit('brain_mesh_update', {'brain_mesh': brain_mesh_fig.to_json()})
 
 # -------------------- Global State --------------------
 
@@ -478,14 +521,12 @@ def index():
 
 @app.route('/update_graphs')
 def update_graphs_route():
-    brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
     return jsonify({
         'brain_mesh': brain_mesh_fig.to_json(),
     })
 
 @app.route('/select_group/<int:group_id>')
 def select_group(group_id):
-    brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
     brain_mesh_fig = highlight_sensor_group(brain_mesh_fig, group_id)
     return jsonify({'brain_mesh': brain_mesh_fig.to_json()})
 
