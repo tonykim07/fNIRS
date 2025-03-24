@@ -102,19 +102,19 @@ def read_data_from_serial():
                 sensor_1_short_channel = parsed_data[0, 1]
 
                 # Check if channel value is in valid range
-                if 100 <= sensor_1_short_channel <= 3900:
-                    elapsed_time = (time.time() - start_time)
+                # if 100 <= sensor_1_short_channel <= 3900:
+                elapsed_time = (time.time() - start_time)
 
-                    # Print data to terminal
-                    print(f"Time: {elapsed_time:.2f}s, Sensor 1 - Short Channel: {sensor_1_short_channel}")
+                # Print data to terminal
+                print(f"Time: {elapsed_time:.2f}s, Sensor 1 - Short Channel: {sensor_1_short_channel}")
 
-                    # Save data to CSV
-                    with open(csv_filename, mode='a', newline='') as file:
-                        writer = csv.writer(file)
-                        writer.writerow([elapsed_time, sensor_1_short_channel])
-                else:
-                    # If channel is out of range, skip storing it
-                    print(f"Skipping out-of-range reading (Sensor 1 Short = {sensor_1_short_channel}).")
+                # Save data to CSV
+                with open(csv_filename, mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([elapsed_time, sensor_1_short_channel])
+                # else:
+                #     # If channel is out of range, skip storing it
+                #     print(f"Skipping out-of-range reading (Sensor 1 Short = {sensor_1_short_channel}).")
         else:
             print("No valid data received from the serial port.")
             time.sleep(0.1)  # Slight delay to avoid spamming
