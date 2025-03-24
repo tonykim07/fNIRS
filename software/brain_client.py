@@ -3,7 +3,9 @@ import serial
 import json
 eventlet.monkey_patch()
 
+import time
 import logging
+import subprocess
 from flask import Flask, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
@@ -15,7 +17,7 @@ from data_handler import get_latest_data, sio
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
-ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
+# ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
@@ -251,7 +253,7 @@ def create_static_brain_mesh(emitter_states):
         ))
 
     fig.update_layout(
-        title="3D Brain Mesh with Sensor Nodes",
+        # title="3D Brain Mesh with Sensor Nodes",
         scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False),
         width=800,
         height=800,
@@ -357,118 +359,6 @@ def highlight_sensor_group(fig, group_id):
         ))
     return fig
 
-# -------------------- Activation Plot Functions (unchanged) --------------------
-
-def create_grouped_activation_plot(activation_data):
-    """
-    Create a grouped (stacked) plot with 8 subplots (each for a sensor group).
-    Each group (6 channels) is plotted with custom colors.
-    """
-    num_frames = activation_data.shape[1]
-    time = np.arange(num_frames)
-    num_groups = 8  # 48 channels / 6 per group
-
-    channel_colors = ["darkblue", "lightblue", "darkgreen", "lightgreen", "darkred", "lightcoral"]
-
-    fig = make_subplots(
-        rows=num_groups, cols=1, shared_xaxes=True, vertical_spacing=0.02,
-        subplot_titles=[f"Sensor Group {i+1}" for i in range(num_groups)]
-    )
-
-    for group in range(num_groups):
-        group_data = activation_data[group*6:(group+1)*6, :]
-        for channel in range(6):
-            color = channel_colors[channel]
-            detector = f"D{channel//2 + 1}"
-            modality = "hbo" if channel % 2 == 0 else "hbr"
-            trace_name = f"{detector}, {modality}"
-            fig.add_trace(
-                go.Scatter(
-                    x=time,
-                    y=group_data[channel, :],
-                    mode='lines+markers',
-                    name=trace_name,
-                    line=dict(color=color),
-                    marker=dict(color=color),
-                    showlegend=True
-                ),
-                row=group+1, col=1
-            )
-        fig.update_yaxes(title_text="Concentration (M)", row=group+1, col=1)
-
-    fig.update_xaxes(title_text="Timeframe", row=num_groups, col=1)
-    fig.update_layout(
-        title="Grouped Activation Data (8 groups, 6 channels each)",
-        height=300 * num_groups,
-        showlegend=True
-    )
-    return fig
-
-def create_single_group_plot(activation_data, group_index):
-    """
-    Create a Plotly figure for a single sensor group.
-    """
-    num_frames = activation_data.shape[1]
-    time = np.arange(num_frames)
-    
-    channel_colors = ["darkblue", "lightblue", "darkgreen", "lightgreen", "darkred", "lightcoral"]
-    
-    group_data = activation_data[group_index*6:(group_index+1)*6, :]
-    
-    fig = go.Figure()
-    for channel in range(6):
-        color = channel_colors[channel]
-        detector = f"D{channel//2 + 1}"
-        modality = "hbo" if channel % 2 == 0 else "hbr"
-        trace_name = f"{detector}, {modality}"
-        fig.add_trace(go.Scatter(
-            x=time,
-            y=group_data[channel, :],
-            mode='lines+markers',
-            name=trace_name,
-            line=dict(color=color),
-            marker=dict(color=color)
-        ))
-    fig.update_layout(
-        xaxis_title="Timeframe",
-        yaxis_title="Concentration (M)",
-        showlegend=True,
-        margin=dict(l=5, r=5, t=5, b=5)
-    )
-    return fig
-
-def create_stacked_activation_plot(activation_data, num_nodes, num_frames):
-    """
-    Create a stacked activation plot for all detectors.
-    """
-    fig = go.Figure()
-    offset = 5000
-
-    for node in range(num_nodes - 1, -1, -1):
-        fig.add_trace(go.Scatter(
-            x=np.arange(num_frames),
-            y=activation_data[node, :] + node * offset,
-            mode='lines+markers',
-            name=f"Detector {node}",
-            line=dict(width=2),
-            marker=dict(size=6)
-        ))
-
-    fig.update_yaxes(
-        title_text="Activation Level (Stacked)",
-        tickmode="array",
-        tickvals=[node * offset + offset / 2 for node in range(num_nodes)],
-        ticktext=[f"Detector {node}" for node in range(num_nodes)]
-    )
-    fig.update_xaxes(title_text="Time (frames)")
-    fig.update_layout(
-        title="Detector Activation Levels Over Time",
-        height=800,
-        width=600,
-        showlegend=True
-    )
-    return fig
-
 # -------------------- Global State --------------------
 
 emitter_states = [True] * len(emitter_positions)
@@ -496,28 +386,19 @@ def data():
 
 @app.route('/update_graphs')
 def update_graphs_route():
-    latest_data = get_latest_data()
-    if latest_data is None:
-        return jsonify({'brain_mesh': None, 'stacked_activation': None})
+    # latest_data = get_latest_data()
+    # if latest_data is None:
+    #     return jsonify({'brain_mesh': None})
     
-    activation_data = np.array(latest_data)
-    if activation_data.ndim == 1:
-        activation_data = activation_data.reshape(-1, 1)
+    # activation_data = np.array(latest_data)
+    # if activation_data.ndim == 1:
+    #     activation_data = activation_data.reshape(-1, 1)
     
-    num_nodes, num_frames = activation_data.shape
-
     brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
     # brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, activation_data, num_frames - 1)
-    stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
-    
-    grouped_activation = {}
-    for group_index in range(8):
-        grouped_activation[f"group{group_index+1}"] = create_single_group_plot(activation_data, group_index).to_json()
     
     return jsonify({
         'brain_mesh': brain_mesh_fig.to_json(),
-        'stacked_activation': stacked_fig.to_json(),
-        'grouped_activation': grouped_activation
     })
 
 @app.route('/select_group/<int:group_id>')
@@ -541,8 +422,23 @@ def update_control_data():
     logging.info(f"Control data updated: {control_data}")
     values_list = list(control_data.values())
     data_bytes = bytes(values_list)
-    ser.write(data_bytes)
+    # ser.write(data_bytes)
     return jsonify({'status': 'success'})
+
+@app.route('/set_mode/<mode>')
+def set_mode(mode):
+    if mode.lower() == 'adc':
+        # Start adc_server.py and adc_client.py.
+        # Using subprocess.Popen to run them as separate processes.
+        subprocess.Popen(['python', 'adc_mock_server.py'])
+        time.sleep(1)  # Give the server time to start
+        subprocess.Popen(['python', 'adc_client.py'])
+        return jsonify({'status': 'ADC mode started'})
+    elif mode.lower() == 'mbll':
+        # For mBLL mode, nothing is done for now.
+        return jsonify({'status': 'mBLL mode selected, not implemented yet'})
+    else:
+        return jsonify({'status': 'Invalid mode selected'}), 400
 
 if __name__ == '__main__':
     sio.connect('http://127.0.0.1:5000', transports=['websocket'])
