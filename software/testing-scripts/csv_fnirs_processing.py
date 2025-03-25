@@ -9,18 +9,38 @@ import numpy as np
 import time
 import csv
 import pandas as pd
-import msvcrt
+import sys
 
-# Set up serial connection
-ser = serial.Serial('COM7', 115200, timeout=1)
-
-NOISE_LEVEL = 2050
+# Set up serial connection and use the appropriate keyboard functions based on platform
+if sys.platform.startswith('win'):
+    import msvcrt
+    ser = serial.Serial('COM7', 115200, timeout=1)
+    def key_pressed():
+        return msvcrt.kbhit()
+    def get_key():
+        return msvcrt.getch()
+else:
+    import select, termios, tty
+    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 115200, timeout=1)
+    def key_pressed():
+        dr, dw, de = select.select([sys.stdin], [], [], 0)
+        return bool(dr)
+    def get_key():
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
 
 def parse_packet(data):
     """ 
     Parses 64 raw bytes into an 8×5 array of sensor data:
        [Group ID, Short, Long1, Long2, Emitter Status].
     """
+    NOISE_LEVEL = 2050
     parsed_data = np.zeros((8, 5), dtype=int)
     for i in range(8):
         offset = i * 8
@@ -76,9 +96,11 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                     break
 
                 # Check for Enter key press if enabled
-                if stop_on_enter and msvcrt.kbhit():
-                    key = msvcrt.getch()
-                    if key == b'\r':  # Enter key is pressed (carriage return)
+                if stop_on_enter and key_pressed():
+                    key = get_key()
+                    # On Windows key is a byte; on Unix it is a string.
+                    # Check for carriage return and newline.
+                    if key in [b'\r', '\r', b'\n', '\n']:
                         print("Enter key pressed, stopping logging...")
                         break
 
@@ -278,8 +300,11 @@ def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ex
 
 # ------------------ Main ------------------
 if __name__ == '__main__':
-    stop_flag=None
+
+    # Capture Data
+    stop_flag=None # set to 1 from GUI to stop processing
     capture_data("all_groups.csv", stop_on_enter=True, external_stop_flag=stop_flag)
+
     # Read CSV file
     df = pd.read_csv("all_groups.csv")
 
