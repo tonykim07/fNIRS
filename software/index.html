@@ -267,11 +267,13 @@
           <div class="card-header">Mode Selection</div>
           <div class="card-body">
             <label for="modeSelect">Select Mode:</label>
-            <select id="modeSelect" onchange="handleModeChange()">
+            <select id="modeSelect">
               <option value="none">Select a mode</option>
               <option value="ADC">ADC</option>
               <option value="mBLL">mBLL</option>
             </select>
+            <br><br>
+            <button id="modeToggleButton" class="btn btn-custom btn-block" onclick="toggleMode()">Start</button>
           </div>
         </div>
 
@@ -292,6 +294,7 @@
 
     var currentGroup = null;  // global variable to store the selected group
     var currentCamera = null; // Global variable to store current camera settings
+    var modeStarted = false; // Tracks whether a mode is running.
 
     // Emitter & MUX control logic
     let controlData = {
@@ -551,28 +554,40 @@
       });
     }
 
-    function handleModeChange() {
-      var mode = document.getElementById("modeSelect").value;
-      if (mode === "ADC") {
+    function toggleMode() {
+      if (!modeStarted) {
+        // Starting mode: verify a mode is selected.
+        var selectedMode = document.getElementById("modeSelect").value;
+        if (selectedMode === "none") {
+          alert("Please select a mode before starting.");
+          return;
+        }
+        // Start the mode by calling the appropriate endpoint.
         $.ajax({
-          url: "/set_mode/adc",
+          url: "/set_mode/" + selectedMode,
           method: "GET",
           success: function (response) {
-            console.log("ADC mode started:", response);
+            console.log(selectedMode + " mode started:", response);
+            $("#modeToggleButton").text("Stop");
+            modeStarted = true;
           },
           error: function (err) {
-            console.error("Error starting ADC mode:", err);
+            console.error("Error starting mode:", err);
           }
         });
-      } else if (mode === "mBLL") {
+      } else {
+        // Stopping mode: call the stop endpoint.
         $.ajax({
-          url: "/set_mode/mbll",
+          url: "/stop_mode",
           method: "GET",
           success: function (response) {
-            console.log("mBLL mode selected:", response);
+            console.log("Mode stopped:", response);
+            $("#modeToggleButton").text("Start");
+            $("#modeSelect").val("none");
+            modeStarted = false;
           },
           error: function (err) {
-            console.error("Error selecting mBLL mode:", err);
+            console.error("Error stopping mode:", err);
           }
         });
       }

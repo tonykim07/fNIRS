@@ -316,6 +316,7 @@ emitter_states = [True] * len(emitter_positions)
 
 # Global variable to store accumulated activation data
 activation_history = None
+running_processes = []
 
 # Define control data (emitter and mux control states)
 control_data = {
@@ -565,21 +566,31 @@ def set_mode(mode):
     global current_mode
     if mode.lower() == 'adc':
         current_mode = 'adc'
-        subprocess.Popen(['python', 'adc_mock_server.py'])
+        proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
         time.sleep(1)  # allow server to initialize
-        subprocess.Popen(['python', 'adc_client.py'])
+        proc2 = subprocess.Popen(['python', 'adc_client.py'])
+        running_processes.extend([proc1, proc2])
         return jsonify({'status': 'ADC mode started'})
     elif mode.lower() == 'mbll':
         current_mode = 'mBLL'
-        # Start the server if not already running.
-        subprocess.Popen(['python', 'brain_mock_server.py'])
+        proc1 = subprocess.Popen(['python', 'mBLL_mock_server.py'])
         time.sleep(2)
-        # Optionally, you could now trigger the connection
+        # Start the Socket.IO client connection in a background thread.
         threading.Thread(target=run_socketio_client, daemon=True).start()
-        subprocess.Popen(['python', 'mBLL_client.py'])
+        proc2 = subprocess.Popen(['python', 'mBLL_client.py'])
+        running_processes.extend([proc1, proc2])
         return jsonify({'status': 'mBLL mode selected'})
     else:
         return jsonify({'status': 'Invalid mode selected'}), 400
+
+@app.route('/stop_mode')
+def stop_mode():
+    global current_mode, running_processes
+    for proc in running_processes:
+        proc.terminate()  # or proc.kill() if necessary
+    running_processes = []
+    current_mode = 'default'
+    return jsonify({'status': 'Mode stopped, returning to default'})
 
 # -----------------------------------------------------
 # Start the Upstream Client in a Background Thread
