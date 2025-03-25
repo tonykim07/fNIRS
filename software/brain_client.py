@@ -576,6 +576,7 @@ def set_mode(mode):
         time.sleep(2)
         # Optionally, you could now trigger the connection
         threading.Thread(target=run_socketio_client, daemon=True).start()
+        subprocess.Popen(['python', 'mBLL_client.py'])
         return jsonify({'status': 'mBLL mode selected'})
     else:
         return jsonify({'status': 'Invalid mode selected'}), 400
