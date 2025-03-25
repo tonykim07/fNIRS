@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # 2) Filter out rows with any Short/Long reading <200 or >3800.
     reading_cols = [c for c in df.columns if "Short" in c or "Long" in c]
-    mask = (df[reading_cols] >= 1000).all(axis=1) & (df[reading_cols] <= 3000).all(axis=1)
+    mask = (df[reading_cols] >= 0).all(axis=1) & (df[reading_cols] <= 4000).all(axis=1)
     df = df[mask].copy()
 
     # 3) Interleave the blocks based on the mode column.
