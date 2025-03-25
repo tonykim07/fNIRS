@@ -302,15 +302,32 @@ def create_static_brain_mesh(emitter_states):
     return fig
 
 
+# -----------------------------------------------------
+# Global Variables
+# -----------------------------------------------------
+
 # Preload data.
 coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
 emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
 combined_positions = np.vstack((emitter_positions, detector_positions))
 regions = map_points_to_regions(combined_positions, affine, aal_data)
 brain_mesh_fig = create_static_brain_mesh([True]*8)
+emitter_states = [True] * len(emitter_positions)
 
+# Global variable to store accumulated activation data
+activation_history = None
 
-# Define sensor groupings.
+# Define control data (emitter and mux control states)
+control_data = {
+    'emitter_control_override_enable': 0,
+    'emitter_control_state': 0,
+    'emitter_pwm_control_h': 0,
+    'emitter_pwm_control_l': 0,
+    'mux_control_override_enable': 0,
+    'mux_control_state': 0
+}
+
+# Define sensor groupings
 sensor_groups = [
     {"group_id": 1, "emitter_index": 0, "detector_indices": [0, 1]},
     {"group_id": 2, "emitter_index": 1, "detector_indices": [2, 3]},
@@ -333,6 +350,7 @@ sensor_mapping = [
     6, 20, 21,  # Group 7: emitter6, detector12, detector13
     7, 22, 23   # Group 8: emitter7, detector14, detector15
 ]
+
 
 # -----------------------------------------------------
 # Precomputation for Region Mappings
@@ -360,7 +378,9 @@ for reg in unique_sensor_regions:
     region_filtered[reg] = filtered_coords
 
 
-
+# -----------------------------------------------------
+# Helper Functions for Updating the Brain Mesh
+# -----------------------------------------------------
 def update_highlighted_regions(fig, hbo_values):
     """
     Update the brain mesh with highlighted regions based on activation data.
@@ -461,6 +481,7 @@ def highlight_sensor_group(fig, group_id):
         ))
     return fig
 
+
 # -----------------------------------------------------
 # Graph Update Function (called when new data arrives)
 # -----------------------------------------------------
@@ -492,19 +513,10 @@ def update_graphs(latest_packet):
 
     logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
     
-    socketio.emit('brain_mesh_update', {'brain_mesh': brain_mesh_fig.to_json()})
+    socketio.emit('brain_mesh_update', {
+        'brain_mesh': brain_mesh_fig.to_json()
+    })
 
-# -------------------- Global State --------------------
-
-emitter_states = [True] * len(emitter_positions)
-control_data = {
-    'emitter_control_override_enable': 0,
-    'emitter_control_state': 0,
-    'emitter_pwm_control_h': 0,
-    'emitter_pwm_control_l': 0,
-    'mux_control_override_enable': 0,
-    'mux_control_state': 0
-}
 
 # -------------------- Flask Routes --------------------
 
@@ -553,14 +565,18 @@ def set_mode(mode):
     global current_mode
     if mode.lower() == 'adc':
         current_mode = 'adc'
-        subprocess.Popen(['python', 'adc_server.py'])
+        subprocess.Popen(['python', 'adc_mock_server.py'])
         time.sleep(1)  # allow server to initialize
         subprocess.Popen(['python', 'adc_client.py'])
         return jsonify({'status': 'ADC mode started'})
     elif mode.lower() == 'mbll':
         current_mode = 'mBLL'
-        # subprocess.Popen(['python', 'mBLL_client.py'])
-        return jsonify({'status': 'mBLL mode selected, not implemented yet'})
+        # Start the server if not already running.
+        subprocess.Popen(['python', 'brain_mock_server.py'])
+        time.sleep(2)
+        # Optionally, you could now trigger the connection
+        threading.Thread(target=run_socketio_client, daemon=True).start()
+        return jsonify({'status': 'mBLL mode selected'})
     else:
         return jsonify({'status': 'Invalid mode selected'}), 400
 
@@ -568,16 +584,21 @@ def set_mode(mode):
 # Start the Upstream Client in a Background Thread
 # -----------------------------------------------------
 def run_socketio_client():
-    # Connect to your upstream server (e.g., the one in server.py)
-    sio_client.connect('http://127.0.0.1:5000', transports=['websocket'])
-    sio_client.wait()
+    connected = False
+    while not connected:
+        try:
+            logging.info("Attempting to connect to server at http://127.0.0.1:5000")
+            sio_client.connect('http://127.0.0.1:5000', transports=['websocket'])
+            connected = True
+            sio_client.wait()  # This will keep the client running
+        except Exception as e:
+            logging.error(f"Connection failed: {e}. Retrying in 1 second...")
+            time.sleep(1)
 
 # -----------------------------------------------------
 # Main: Start the Flask/Socket.IO server and client thread
 # -----------------------------------------------------
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # Start the Socket.IO client that receives processed data.
-    threading.Thread(target=run_socketio_client, daemon=True).start()
     # Run the Flask-SocketIO server on port 8050.
     socketio.run(app, debug=True, use_reloader=False, port=8050)

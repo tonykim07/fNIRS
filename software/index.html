@@ -120,16 +120,16 @@
                 <strong>Sensor Wavelength:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #39FF14; margin: 0 5px;"></span>
-                940nm wavelength,
+                940 nm,
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #32CD32; margin: 0 5px;"></span>
-                660nm wavelength,
+                660 nm
               </div>
               <div>
                 <strong>Highlights:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: yellow; margin: 0 5px;"></span>
-                Sensor Group Mapping
+                Sensor Group Mapping,
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: red; margin: 0 5px;"></span>
                 Activated Regions
@@ -274,7 +274,7 @@
             </select>
           </div>
         </div>
-        
+
       </div> <!-- End Right Column -->
     </div> <!-- End Row -->
   </div>
@@ -283,7 +283,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
-
 
   <script>
     // Define LED colors:
@@ -405,7 +404,6 @@
           }
           updateControlData();
         });
-
         // When the 660nm checkbox is changed.
         $("#emitter_" + i + "_660").on("change", function () {
           var emitterIndex = this.id.split('_')[1];
@@ -512,7 +510,6 @@
       }
       return value;
     }
-
 
     // Update UI based on control data
     function updateUI() {
