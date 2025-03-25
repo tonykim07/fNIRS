@@ -117,16 +117,22 @@
                 Detector
               </div>
               <div>
-                <strong>Highlights:</strong>
+                <strong>Sensor Wavelength:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #39FF14; margin: 0 5px;"></span>
-                940nm wavelength,
+                940 nm,
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: #32CD32; margin: 0 5px;"></span>
-                660nm wavelength,
+                660 nm
+              </div>
+              <div>
+                <strong>Highlights:</strong>
                 <span class="legend-item"
                   style="display: inline-block; width: 12px; height: 12px; background-color: yellow; margin: 0 5px;"></span>
-                Sensor Group Mapping
+                Sensor Group Mapping,
+                <span class="legend-item"
+                  style="display: inline-block; width: 12px; height: 12px; background-color: red; margin: 0 5px;"></span>
+                Activated Regions
               </div>
             </div>
             <div id="brainMeshContainer"></div>
@@ -255,134 +261,30 @@
             </div>
           </div> <!-- End Card Body for Control Panel -->
         </div> <!-- End Control Panel Card -->
+
+        <!-- Mode Selection Panel -->
+        <div class="card mt-4">
+          <div class="card-header">Mode Selection</div>
+          <div class="card-body">
+            <label for="modeSelect">Select Mode:</label>
+            <select id="modeSelect">
+              <option value="none">Select a mode</option>
+              <option value="ADC">ADC</option>
+              <option value="mBLL">mBLL</option>
+            </select>
+            <br><br>
+            <button id="modeToggleButton" class="btn btn-custom btn-block" onclick="toggleMode()">Start</button>
+          </div>
+        </div>
+
       </div> <!-- End Right Column -->
     </div> <!-- End Row -->
-
-    <!-- Expanded/Collapsed Sensor Group Charts (existing code remains) -->
-    <div class="text-center mb-3">
-      <button id="toggleMode" class="btn btn-primary">Switch to Collapsed Mode</button>
-    </div>
-
-    <!-- Expanded Mode: Grid Layout for Sensor Group Charts -->
-    <div id="expanded-container">
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 1</div>
-            <div class="card-body p-0">
-              <div id="group1" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 2</div>
-            <div class="card-body p-0">
-              <div id="group2" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 3</div>
-            <div class="card-body p-0">
-              <div id="group3" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 4</div>
-            <div class="card-body p-0">
-              <div id="group4" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 5</div>
-            <div class="card-body p-0">
-              <div id="group5" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 6</div>
-            <div class="card-body p-0">
-              <div id="group6" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 7</div>
-            <div class="card-body p-0">
-              <div id="group7" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card graph-container">
-            <div class="card-header text-center">Sensor Group 8</div>
-            <div class="card-body p-0">
-              <div id="group8" style="height: 400px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Collapsed Mode: Tabbed Layout for Sensor Group Charts -->
-    <div id="collapsed-container" style="display: none;">
-      <ul class="nav nav-tabs" id="groupTabs" role="tablist">
-        <li class="nav-item">
-          <a class="nav-link active" id="tab1-tab" data-toggle="tab" href="#tab1" role="tab">Group 1</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab2-tab" data-toggle="tab" href="#tab2" role="tab">Group 2</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab3-tab" data-toggle="tab" href="#tab3" role="tab">Group 3</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab4-tab" data-toggle="tab" href="#tab4" role="tab">Group 4</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab5-tab" data-toggle="tab" href="#tab5" role="tab">Group 5</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab6-tab" data-toggle="tab" href="#tab6" role="tab">Group 6</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab7-tab" data-toggle="tab" href="#tab7" role="tab">Group 7</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" id="tab8-tab" data-toggle="tab" href="#tab8" role="tab">Group 8</a>
-        </li>
-      </ul>
-      <div class="tab-content" id="groupTabsContent">
-        <div class="tab-pane fade show active graph-container" id="tab1" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab2" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab3" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab4" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab5" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab6" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab7" role="tabpanel" style="height: 400px;"></div>
-        <div class="tab-pane fade graph-container" id="tab8" role="tabpanel" style="height: 400px;"></div>
-      </div>
-    </div>
   </div>
 
   <!-- Load Bootstrap JS and dependencies -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
 
   <script>
     // Define LED colors:
@@ -392,6 +294,24 @@
 
     var currentGroup = null;  // global variable to store the selected group
     var currentCamera = null; // Global variable to store current camera settings
+    var modeStarted = false; // Tracks whether a mode is running.
+
+    // Emitter & MUX control logic
+    let controlData = {
+      emitter_control_override_enable: 0,
+      emitter_control_state: 0,
+      emitter_pwm_control_h: 0,
+      emitter_pwm_control_l: 0,
+      mux_control_override_enable: 0,
+      mux_control_state: 0
+    };
+
+    var socket = io();
+    socket.on('brain_mesh_update', function (data) {
+      console.log('Received brain mesh update:', data);
+      const brainFig = JSON.parse(data.brain_mesh);
+      Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout);
+    });
 
     // Attach a listener to capture camera changes.
     // Using Plotly's built-in event handler.
@@ -487,7 +407,6 @@
           }
           updateControlData();
         });
-
         // When the 660nm checkbox is changed.
         $("#emitter_" + i + "_660").on("change", function () {
           var emitterIndex = this.id.split('_')[1];
@@ -530,17 +449,11 @@
           }
         });
       });
+
+      // Initial rendering of graphs and control UI
+      updateGraphs();
     });
 
-    // Emitter & MUX control logic
-    let controlData = {
-      emitter_control_override_enable: 0,
-      emitter_control_state: 0,
-      emitter_pwm_control_h: 0,
-      emitter_pwm_control_l: 0,
-      mux_control_override_enable: 0,
-      mux_control_state: 0
-    };
 
     // Update control data based on user input
     function updateControlData() {
@@ -601,7 +514,6 @@
       return value;
     }
 
-
     // Update UI based on control data
     function updateUI() {
       const emitterOverrideEnabled = document.getElementById('emitter_control_override_enable').checked;
@@ -616,68 +528,71 @@
     // Function to update brain mesh and sensor charts
     function updateGraphs() {
       var endpoint = currentGroup !== null ? '/select_group/' + currentGroup : '/update_graphs';
+      console.log('Updating graphs with endpoint:', endpoint);
       $.getJSON(endpoint, function (data) {
         // Update brain mesh
-          if (data.brain_mesh) {
-            const brainFig = JSON.parse(data.brain_mesh);
+        if (data.brain_mesh) {
+          const brainFig = JSON.parse(data.brain_mesh);
           var brainDiv = document.getElementById("brainMeshContainer");
           // Use currentCamera if available, otherwise try to get the current camera from the existing layout.
-            if (currentCamera) {
-              brainFig.layout.scene.camera = currentCamera;
+          if (currentCamera) {
+            brainFig.layout.scene.camera = currentCamera;
           } else if (brainDiv && brainDiv._fullLayout && brainDiv._fullLayout.scene && brainDiv._fullLayout.scene.camera) {
             brainFig.layout.scene.camera = brainDiv._fullLayout.scene.camera;
-            }
+          }
           Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout).then(function () {
-              if (currentCamera) {
-                Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
-              }
-              attachCameraListener();
+            if (currentCamera) {
+              Plotly.relayout("brainMeshContainer", { "scene.camera": currentCamera });
+            }
+            attachCameraListener();
             updateEmitterColors();
           });
         }
-        // Update expanded sensor charts
-        if (data.grouped_activation) {
-          for (let i = 1; i <= 8; i++) {
-            if (data.grouped_activation[`group${i}`]) {
-              const fig = JSON.parse(data.grouped_activation[`group${i}`]);
-              Plotly.react(`group${i}`, fig.data, fig.layout);
-            }
-          }
-          // Update collapsed (tabbed) sensor charts
-          for (let i = 1; i <= 8; i++) {
-            if (data.grouped_activation[`group${i}`]) {
-              const fig = JSON.parse(data.grouped_activation[`group${i}`]);
-              Plotly.react(`tab${i}`, fig.data, fig.layout);
-            }
-          }
-        } else if (data.stacked_activation) {
-          // Fallback example
-          const fig = JSON.parse(data.stacked_activation);
-          Plotly.react('group1', fig.data, fig.layout);
-          Plotly.react('tab1', fig.data, fig.layout);
+        else {
+          console.error('No brain mesh data received.');
         }
-      }).always(function () {
-        setTimeout(updateGraphs, 1000);
       });
     }
 
-    // Toggle between expanded and collapsed modes
-    document.getElementById('toggleMode').addEventListener('click', function () {
-      const expanded = document.getElementById('expanded-container');
-      const collapsed = document.getElementById('collapsed-container');
-      if (expanded.style.display !== 'none') {
-        expanded.style.display = 'none';
-        collapsed.style.display = 'block';
-        this.textContent = 'Switch to Expanded Mode';
+    function toggleMode() {
+      if (!modeStarted) {
+        // Starting mode: verify a mode is selected.
+        var selectedMode = document.getElementById("modeSelect").value;
+        if (selectedMode === "none") {
+          alert("Please select a mode before starting.");
+          return;
+        }
+        // Start the mode by calling the appropriate endpoint.
+        $.ajax({
+          url: "/set_mode/" + selectedMode,
+          method: "GET",
+          success: function (response) {
+            console.log(selectedMode + " mode started:", response);
+            $("#modeToggleButton").text("Stop");
+            modeStarted = true;
+          },
+          error: function (err) {
+            console.error("Error starting mode:", err);
+          }
+        });
       } else {
-        expanded.style.display = 'block';
-        collapsed.style.display = 'none';
-        this.textContent = 'Switch to Collapsed Mode';
+        // Stopping mode: call the stop endpoint.
+        $.ajax({
+          url: "/stop_mode",
+          method: "GET",
+          success: function (response) {
+            console.log("Mode stopped:", response);
+            $("#modeToggleButton").text("Start");
+            $("#modeSelect").val("none");
+            modeStarted = false;
+          },
+          error: function (err) {
+            console.error("Error stopping mode:", err);
+          }
+        });
       }
-    });
+    }
 
-    // Initial rendering of graphs and control UI
-    updateGraphs();
   </script>
 </body>
 

@@ -3,12 +3,12 @@ import socketio
 import collections
 import signal
 
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
+from pyqtgraph.Qt import QtWidgets, QtCore
 import pyqtgraph as pg
 import engineio.base_client
 engineio.base_client.printExc = lambda *args, **kwargs: None
 
-# Signal handler to exit the application gracefully.
+# Signal handler to exit gracefully.
 def signal_handler(sig, frame):
     print("Exiting gracefully...")
     if sio.connected:
@@ -17,16 +17,15 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-# Modern UI configuration.
-pg.setConfigOption('antialias', True)    # Smoother curves and text.
-pg.setConfigOption('background', 'w')      # White background.
-pg.setConfigOption('foreground', 'k')      # Black text and lines.
+# Modern UI configuration:
+pg.setConfigOption('antialias', True)             # Smoother curves and text.
+pg.setConfigOption('background', 'w')             # White background.
+pg.setConfigOption('foreground', 'k')             # Black text and lines.
 
 # Create a SocketIO client instance.
 sio = socketio.Client()
 
-# For each group (8 total) and for each trace (3 per group), store the last 5000 datapoints.
-data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
+data = [[collections.deque(maxlen=5000) for _ in range(6)] for _ in range(8)]
 
 # Create a Qt Application.
 app = QtWidgets.QApplication([])
@@ -40,8 +39,8 @@ top_layout = QtWidgets.QHBoxLayout()
 top_layout.addStretch()  # Push the legend to the right.
 
 # Define colors and labels for the traces.
-trace_colors = ["red", "green", "blue"]
-trace_labels = ["Channel 1", "Channel 2", "Channel 3"]
+trace_colors = ["#FF0000", "#FF6666", "#008000", "#90EE90", "#0000FF", "#ADD8E6"]
+trace_labels = ["S1, hbo", "S1, hbr", "S2, hbo", "S2, hbr", "S3, hbo", "S3, hbr"]
 
 # Create the legend layout.
 legend_layout = QtWidgets.QHBoxLayout()
@@ -66,20 +65,22 @@ top_layout.addLayout(legend_layout)
 # Add the top layout (legend) to the main layout.
 main_layout.addLayout(top_layout)
 
-# Create a GraphicsLayoutWidget to hold the plots.
-win = pg.GraphicsLayoutWidget(title="Real-Time Sensor Data")
+# Create a GraphicsLayoutWidget to hold the sensor plots.
+win = pg.GraphicsLayoutWidget(show=True, title="Real-Time Sensor Data")
 win.resize(1200, 800)
 
+# Create 8 plots arranged in 4 rows x 2 columns.
 plots = []
 curves = []  # curves[group][trace]
 for group in range(8):
     p = win.addPlot(title=f"Group {group+1}")
-    p.showGrid(x=True, y=True, alpha=0.3)  # Softer grid lines.
-    p.setLabel('bottom', 'Timeframe')       # Set x-axis label.
+    p.showGrid(x=True, y=True, alpha=0.3)
+    p.setLabel('bottom', 'Timeframe')
     group_curves = []
-    for trace in range(3):
-        pen = pg.mkPen(color=trace_colors[trace], width=2)
-        curve = p.plot(pen=pen)
+    # Create 6 traces for this group.
+    for trace in range(6):
+        color = pg.intColor(trace, hues=6)
+        curve = p.plot(pen=pg.mkPen(color=color, width=2))
         group_curves.append(curve)
     plots.append(p)
     curves.append(group_curves)
@@ -99,30 +100,31 @@ def disconnect():
 
 @sio.on('processed_data')
 def on_processed_data(message):
-    sensor_array = message.get('sensor_array', [])
+    sensor_array = message.get('concentrations', [])
     print("Received sensor data:", sensor_array)
-    if len(sensor_array) == 24:
+    if len(sensor_array) == 48:
+        # For each of the 8 groups, extract 6 consecutive values.
         for group in range(8):
-            group_values = sensor_array[group * 3: group * 3 + 3]
-            for trace in range(3):
+            group_values = sensor_array[group * 6 : group * 6 + 6]
+            for trace in range(6):
                 data[group][trace].append(group_values[trace])
     else:
-        print("Received data does not contain 24 elements.")
+        print("Received data does not contain 48 elements.")
 
+# -----------------------------------------------------------------------------
+# Plot update: update all sensor plots.
 def update():
-    """Update all plots with the latest data."""
     for group in range(8):
-        for trace in range(3):
+        for trace in range(6):
             d = list(data[group][trace])
-            x = list(range(len(d)))
-            curves[group][trace].setData(x, d)
+            x_data = list(range(len(d)))
+            curves[group][trace].setData(x_data, d)
 
-# Create a QTimer to update the plots.
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(1)  # The actual refresh rate may vary by system performance.
+timer.start(1)  # Adjust the refresh rate as needed.
 
-# Connect the SocketIO client.
+# Connect the Socket.IO client.
 sio.connect('http://localhost:5000')
 
 if __name__ == '__main__':

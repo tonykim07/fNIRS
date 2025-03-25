@@ -138,7 +138,8 @@ def data_processing_task():
             # print("Latest Concentration Values (48 channels):")
             # print(tabulate(table_data, headers=["Channel", "Type", "Concentration"]))
             # print("-" * 80)
-        eventlet.sleep(0.1)
+            print(f"concentrations: {concentrations}\n")
+        eventlet.sleep(0.01)
 
 if __name__ == '__main__':
     # Start the data processing in a background thread

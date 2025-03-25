@@ -3,24 +3,87 @@ import serial
 import json
 eventlet.monkey_patch()
 
+import signal
+import time
 import logging
+import subprocess
 from flask import Flask, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import numpy as np
 import nibabel as nib
+import threading
+from queue import Queue
 from scipy.spatial import cKDTree
-from data_handler import get_latest_data, sio
+import socketio as sio_client_lib
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
-ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
+# ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
 
+# -----------------------------------------------------
+# Flask and Socket.IO Setup
+# -----------------------------------------------------
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# -------------------- Helper Functions for Custom Mesh --------------------
+# -----------------------------------------------------
+# Global Variables and Data Queue (for processed packets)
+# -----------------------------------------------------
+current_mode = 'default'  # default mode when the app starts
+# Data queue to store incoming data
+data_queue = Queue(maxsize=20)
+data_lock = threading.Lock()  # Create a lock for synchronization
+
+# -----------------------------------------------------
+# Upstream Socket.IO Client Setup (receives processed_data)
+# -----------------------------------------------------
+sio_client = sio_client_lib.Client()
+
+@sio_client.event
+def connect():
+    logging.info("Connected to upstream server for data.")
+
+@sio_client.event
+def disconnect():
+    logging.info("Disconnected from upstream server.")
+
+@sio_client.event
+def processed_data(data):
+    """Called when a new processed data packet is received."""
+    activation_data = np.array(data['concentrations'])
+    # logging.info(f"Received new data: {activation_data}")
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
+    with data_lock:
+        if data_queue.full():
+            data_queue.get()  # remove oldest if full
+        data_queue.put(activation_data)
+    
+    # Immediately update the graph if in mBLL mode.
+    if current_mode == 'mBLL':
+        update_graphs(activation_data)
+
+def get_most_recent_packet():
+    with data_lock:
+        if not data_queue.empty():
+            return list(data_queue.queue)[-1]
+    return None
+
+# Signal handler to exit the application gracefully.
+def signal_handler(sig, frame):
+    print("Exiting gracefully...")
+    if sio_client.connected:
+        sio_client.disconnect()
+    app.quit()
+    
+# Register the signal handler for SIGINT.
+signal.signal(signal.SIGINT, signal_handler)
+
+# -----------------------------------------------------
+# fNIRS Data Processing and Brain Mesh Functions
+# -----------------------------------------------------
 
 def compute_vertex_normals(vertices, triangles):
     """Compute an approximate normal for each vertex in the mesh."""
@@ -87,7 +150,6 @@ def create_flat_cylinder_mesh(center, normal, radius, height=1.0, resolution=20,
     vertices_translated = vertices_rotated + center
     return vertices_translated, faces
 
-# -------------------- Brain Mesh Functions --------------------
 
 def preload_static_data():
     """
@@ -173,26 +235,6 @@ def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     distances, _ = tree.query(coords)
     return coords[distances <= threshold]
 
-# Preload data.
-coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
-emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
-combined_positions = np.vstack((emitter_positions, detector_positions))
-regions = map_points_to_regions(combined_positions, affine, aal_data)
-
-# Define sensor groupings.
-sensor_groups = [
-    {"group_id": 1, "emitter_index": 0, "detector_indices": [0, 1]},
-    {"group_id": 2, "emitter_index": 1, "detector_indices": [2, 3]},
-    {"group_id": 3, "emitter_index": 2, "detector_indices": [4, 5]},
-    {"group_id": 4, "emitter_index": 3, "detector_indices": [6, 7]},
-    {"group_id": 5, "emitter_index": 4, "detector_indices": [8, 9]},
-    {"group_id": 6, "emitter_index": 5, "detector_indices": [10, 11]},
-    {"group_id": 7, "emitter_index": 6, "detector_indices": [12, 13]},
-    {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
-]
-
-# -------------------- Brain Mesh Visualization Functions --------------------
-
 def create_static_brain_mesh(emitter_states):
     """
     Create a static 3D brain mesh with sensor nodes.
@@ -251,7 +293,7 @@ def create_static_brain_mesh(emitter_states):
         ))
 
     fig.update_layout(
-        title="3D Brain Mesh with Sensor Nodes",
+        # title="3D Brain Mesh with Sensor Nodes",
         scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False),
         width=800,
         height=800,
@@ -259,33 +301,118 @@ def create_static_brain_mesh(emitter_states):
     )
     return fig
 
-def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
+
+# -----------------------------------------------------
+# Global Variables
+# -----------------------------------------------------
+
+# Preload data.
+coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
+emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
+combined_positions = np.vstack((emitter_positions, detector_positions))
+regions = map_points_to_regions(combined_positions, affine, aal_data)
+brain_mesh_fig = create_static_brain_mesh([True]*8)
+emitter_states = [True] * len(emitter_positions)
+
+# Global variable to store accumulated activation data
+activation_history = None
+running_processes = []
+
+# Define control data (emitter and mux control states)
+control_data = {
+    'emitter_control_override_enable': 0,
+    'emitter_control_state': 0,
+    'emitter_pwm_control_h': 0,
+    'emitter_pwm_control_l': 0,
+    'mux_control_override_enable': 0,
+    'mux_control_state': 0
+}
+
+# Define sensor groupings
+sensor_groups = [
+    {"group_id": 1, "emitter_index": 0, "detector_indices": [0, 1]},
+    {"group_id": 2, "emitter_index": 1, "detector_indices": [2, 3]},
+    {"group_id": 3, "emitter_index": 2, "detector_indices": [4, 5]},
+    {"group_id": 4, "emitter_index": 3, "detector_indices": [6, 7]},
+    {"group_id": 5, "emitter_index": 4, "detector_indices": [8, 9]},
+    {"group_id": 6, "emitter_index": 5, "detector_indices": [10, 11]},
+    {"group_id": 7, "emitter_index": 6, "detector_indices": [12, 13]},
+    {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
+]
+
+# Define a mapping: for each hbo sensor (0-23) give its corresponding index in combined_positions (0-23)
+sensor_mapping = [
+    0, 8, 9,    # Group 1: emitter0, detector0, detector1
+    1, 10, 11,  # Group 2: emitter1, detector2, detector3
+    2, 12, 13,  # Group 3: emitter2, detector4, detector5
+    3, 14, 15,  # Group 4: emitter3, detector6, detector7
+    4, 16, 17,  # Group 5: emitter4, detector8, detector9
+    5, 18, 19,  # Group 6: emitter5, detector10, detector11
+    6, 20, 21,  # Group 7: emitter6, detector12, detector13
+    7, 22, 23   # Group 8: emitter7, detector14, detector15
+]
+
+
+# -----------------------------------------------------
+# Precomputation for Region Mappings
+# -----------------------------------------------------
+
+# Precompute sensor-to-region mapping (length 24)
+sensor_region = [regions[sensor_mapping[i]] for i in range(len(sensor_mapping))]
+
+# Precompute region-to-sensor indices for regions of interest.
+region_to_sensor_indices = {}
+for i, reg in enumerate(sensor_region):
+    if reg > 0:
+        region_to_sensor_indices.setdefault(reg, []).append(i)
+
+# Precompute filtered coordinates for each region (using a constant threshold, e.g., 2.0)
+surface_coords = np.column_stack((x, y, z))
+region_filtered = {}
+# Get the unique region IDs from the sensors (only those > 0)
+unique_sensor_regions = np.unique([r for r in sensor_region if r > 0])
+for reg in unique_sensor_regions:
+    region_mask = aal_data == reg
+    region_voxels = np.argwhere(region_mask)
+    region_world_coords = nib.affines.apply_affine(affine, region_voxels)
+    filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
+    region_filtered[reg] = filtered_coords
+
+
+# -----------------------------------------------------
+# Helper Functions for Updating the Brain Mesh
+# -----------------------------------------------------
+def update_highlighted_regions(fig, hbo_values):
     """
     Update the brain mesh with highlighted regions based on activation data.
+    Uses precomputed sensor-to-region mapping, region-to-sensor indices, and
+    precomputed filtered coordinates.
     """
-    if activation_data.shape[0] < 20:
-        activation_data = np.pad(activation_data, ((0, 20 - activation_data.shape[0]), (0, 0)), mode='constant')
-    activation_levels = activation_data[:20, frame]
-    highlighted_regions = np.unique(regions[activation_levels > threshold])
-    surface_coords = np.column_stack((x, y, z))
+    # Collect region IDs from sensors that are activated (hbo value < 0)
+    highlighted_region_ids = []
+    for i, value in enumerate(hbo_values):
+        if value < 0 and sensor_region[i] > 0:
+            highlighted_region_ids.append(sensor_region[i])
+    highlighted_region_ids = np.unique(highlighted_region_ids)
+    
     highlighted_coords = []
     highlighted_values = []
-    for idx, region in enumerate(highlighted_regions):
-        if region <= 0:
-            continue
-        region_mask = aal_data == region
-        region_voxels = np.argwhere(region_mask)
-        region_world_coords = nib.affines.apply_affine(affine, region_voxels)
-        filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
-        if filtered_coords.size > 0:
+    for reg in highlighted_region_ids:
+        filtered_coords = region_filtered.get(reg)
+        if filtered_coords is not None and filtered_coords.size > 0:
+            # Compute average sensor value from the sensors mapping to this region.
+            indices = region_to_sensor_indices.get(reg, [])
+            if indices:
+                avg_val = np.mean([hbo_values[i] for i in indices])
+            else:
+                avg_val = 0
             highlighted_coords.append(filtered_coords)
-            highlighted_values.extend([activation_levels[idx]] * len(filtered_coords))
+            highlighted_values.extend([avg_val] * len(filtered_coords))
+    
     if highlighted_coords:
         highlighted_coords = np.vstack(highlighted_coords)
         highlighted_values = np.array(highlighted_values)
-        min_activation = np.min(highlighted_values)
-        max_activation = np.max(highlighted_values)
-        normalized_values = (highlighted_values - min_activation) / (max_activation - min_activation + 1e-5)
+        # Remove old highlight traces and add new trace.
         fig.data = [trace for trace in fig.data if trace.name != 'Highlighted Regions']
         fig.add_trace(go.Scatter3d(
             x=highlighted_coords[:, 0],
@@ -294,15 +421,13 @@ def update_highlighted_regions(fig, activation_data, frame, threshold=3000):
             mode='markers',
             marker=dict(
                 size=2,
-                color=normalized_values,
-                colorscale='Reds',
-                cmin=0,
-                cmax=1,
+                color='red',
                 opacity=0.1
             ),
             name='Highlighted Regions'
         ))
     return fig
+
 
 def highlight_sensor_group(fig, group_id):
     """
@@ -357,129 +482,42 @@ def highlight_sensor_group(fig, group_id):
         ))
     return fig
 
-# -------------------- Activation Plot Functions (unchanged) --------------------
 
-def create_grouped_activation_plot(activation_data):
-    """
-    Create a grouped (stacked) plot with 8 subplots (each for a sensor group).
-    Each group (6 channels) is plotted with custom colors.
-    """
-    num_frames = activation_data.shape[1]
-    time = np.arange(num_frames)
-    num_groups = 8  # 48 channels / 6 per group
-
-    channel_colors = ["darkblue", "lightblue", "darkgreen", "lightgreen", "darkred", "lightcoral"]
-
-    fig = make_subplots(
-        rows=num_groups, cols=1, shared_xaxes=True, vertical_spacing=0.02,
-        subplot_titles=[f"Sensor Group {i+1}" for i in range(num_groups)]
-    )
-
-    for group in range(num_groups):
-        group_data = activation_data[group*6:(group+1)*6, :]
-        for channel in range(6):
-            color = channel_colors[channel]
-            detector = f"D{channel//2 + 1}"
-            modality = "hbo" if channel % 2 == 0 else "hbr"
-            trace_name = f"{detector}, {modality}"
-            fig.add_trace(
-                go.Scatter(
-                    x=time,
-                    y=group_data[channel, :],
-                    mode='lines+markers',
-                    name=trace_name,
-                    line=dict(color=color),
-                    marker=dict(color=color),
-                    showlegend=True
-                ),
-                row=group+1, col=1
-            )
-        fig.update_yaxes(title_text="Concentration (M)", row=group+1, col=1)
-
-    fig.update_xaxes(title_text="Timeframe", row=num_groups, col=1)
-    fig.update_layout(
-        title="Grouped Activation Data (8 groups, 6 channels each)",
-        height=300 * num_groups,
-        showlegend=True
-    )
-    return fig
-
-def create_single_group_plot(activation_data, group_index):
-    """
-    Create a Plotly figure for a single sensor group.
-    """
-    num_frames = activation_data.shape[1]
-    time = np.arange(num_frames)
+# -----------------------------------------------------
+# Graph Update Function (called when new data arrives)
+# -----------------------------------------------------
+# INFO:root:update_highlighted_regions took 1.4346 seconds, which is 99.94% of update_graphs
+def update_graphs(latest_packet):
+    global brain_mesh_fig
+    total_start = time.perf_counter()  # start of the function
+    logging.info(f"Updating brain mesh with new data: {latest_packet}")
     
-    channel_colors = ["darkblue", "lightblue", "darkgreen", "lightgreen", "darkred", "lightcoral"]
+    if latest_packet is None:
+        return
+
+    # Process incoming data
+    activation_data = np.array(latest_packet)
+    if activation_data.ndim == 1:
+        activation_data = activation_data.reshape(-1, 1)
+    hbo_values = activation_data[::2]  # Now an array of 24 values
+
+    # Measure the time taken by update_highlighted_regions
+    update_start = time.perf_counter()
+    brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, hbo_values)
+    update_end = time.perf_counter()
+
+    total_end = time.perf_counter()
     
-    group_data = activation_data[group_index*6:(group_index+1)*6, :]
+    overall_time = total_end - total_start
+    update_time = update_end - update_start
+    percentage = (update_time / overall_time) * 100 if overall_time else 0
+
+    logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
     
-    fig = go.Figure()
-    for channel in range(6):
-        color = channel_colors[channel]
-        detector = f"D{channel//2 + 1}"
-        modality = "hbo" if channel % 2 == 0 else "hbr"
-        trace_name = f"{detector}, {modality}"
-        fig.add_trace(go.Scatter(
-            x=time,
-            y=group_data[channel, :],
-            mode='lines+markers',
-            name=trace_name,
-            line=dict(color=color),
-            marker=dict(color=color)
-        ))
-    fig.update_layout(
-        xaxis_title="Timeframe",
-        yaxis_title="Concentration (M)",
-        showlegend=True,
-        margin=dict(l=5, r=5, t=5, b=5)
-    )
-    return fig
+    socketio.emit('brain_mesh_update', {
+        'brain_mesh': brain_mesh_fig.to_json()
+    })
 
-def create_stacked_activation_plot(activation_data, num_nodes, num_frames):
-    """
-    Create a stacked activation plot for all detectors.
-    """
-    fig = go.Figure()
-    offset = 5000
-
-    for node in range(num_nodes - 1, -1, -1):
-        fig.add_trace(go.Scatter(
-            x=np.arange(num_frames),
-            y=activation_data[node, :] + node * offset,
-            mode='lines+markers',
-            name=f"Detector {node}",
-            line=dict(width=2),
-            marker=dict(size=6)
-        ))
-
-    fig.update_yaxes(
-        title_text="Activation Level (Stacked)",
-        tickmode="array",
-        tickvals=[node * offset + offset / 2 for node in range(num_nodes)],
-        ticktext=[f"Detector {node}" for node in range(num_nodes)]
-    )
-    fig.update_xaxes(title_text="Time (frames)")
-    fig.update_layout(
-        title="Detector Activation Levels Over Time",
-        height=800,
-        width=600,
-        showlegend=True
-    )
-    return fig
-
-# -------------------- Global State --------------------
-
-emitter_states = [True] * len(emitter_positions)
-control_data = {
-    'emitter_control_override_enable': 0,
-    'emitter_control_state': 0,
-    'emitter_pwm_control_h': 0,
-    'emitter_pwm_control_l': 0,
-    'mux_control_override_enable': 0,
-    'mux_control_state': 0
-}
 
 # -------------------- Flask Routes --------------------
 
@@ -487,42 +525,21 @@ control_data = {
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/data')
-def data():
-    latest_data = get_latest_data()
-    if latest_data is None:
-        return jsonify({'data': []})
-    return jsonify({'data': latest_data.tolist()})
+# @app.route('/data')
+# def data():
+#     latest_data = get_latest_data()
+#     if latest_data is None:
+#         return jsonify({'data': []})
+#     return jsonify({'data': latest_data.tolist()})
 
 @app.route('/update_graphs')
 def update_graphs_route():
-    latest_data = get_latest_data()
-    if latest_data is None:
-        return jsonify({'brain_mesh': None, 'stacked_activation': None})
-    
-    activation_data = np.array(latest_data)
-    if activation_data.ndim == 1:
-        activation_data = activation_data.reshape(-1, 1)
-    
-    num_nodes, num_frames = activation_data.shape
-
-    brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
-    # brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, activation_data, num_frames - 1)
-    stacked_fig = create_stacked_activation_plot(activation_data, num_nodes, num_frames)
-    
-    grouped_activation = {}
-    for group_index in range(8):
-        grouped_activation[f"group{group_index+1}"] = create_single_group_plot(activation_data, group_index).to_json()
-    
     return jsonify({
         'brain_mesh': brain_mesh_fig.to_json(),
-        'stacked_activation': stacked_fig.to_json(),
-        'grouped_activation': grouped_activation
     })
 
 @app.route('/select_group/<int:group_id>')
 def select_group(group_id):
-    brain_mesh_fig = create_static_brain_mesh([True]*len(emitter_positions))
     brain_mesh_fig = highlight_sensor_group(brain_mesh_fig, group_id)
     return jsonify({'brain_mesh': brain_mesh_fig.to_json()})
 
@@ -541,9 +558,59 @@ def update_control_data():
     logging.info(f"Control data updated: {control_data}")
     values_list = list(control_data.values())
     data_bytes = bytes(values_list)
-    ser.write(data_bytes)
+    # ser.write(data_bytes)
     return jsonify({'status': 'success'})
 
+@app.route('/set_mode/<mode>')
+def set_mode(mode):
+    global current_mode
+    if mode.lower() == 'adc':
+        current_mode = 'adc'
+        proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
+        time.sleep(1)  # allow server to initialize
+        proc2 = subprocess.Popen(['python', 'adc_client.py'])
+        running_processes.extend([proc1, proc2])
+        return jsonify({'status': 'ADC mode started'})
+    elif mode.lower() == 'mbll':
+        current_mode = 'mBLL'
+        proc1 = subprocess.Popen(['python', 'mBLL_mock_server.py'])
+        time.sleep(2)
+        # Start the Socket.IO client connection in a background thread.
+        threading.Thread(target=run_socketio_client, daemon=True).start()
+        proc2 = subprocess.Popen(['python', 'mBLL_client.py'])
+        running_processes.extend([proc1, proc2])
+        return jsonify({'status': 'mBLL mode selected'})
+    else:
+        return jsonify({'status': 'Invalid mode selected'}), 400
+
+@app.route('/stop_mode')
+def stop_mode():
+    global current_mode, running_processes
+    for proc in running_processes:
+        proc.terminate()  # or proc.kill() if necessary
+    running_processes = []
+    current_mode = 'default'
+    return jsonify({'status': 'Mode stopped, returning to default'})
+
+# -----------------------------------------------------
+# Start the Upstream Client in a Background Thread
+# -----------------------------------------------------
+def run_socketio_client():
+    connected = False
+    while not connected:
+        try:
+            logging.info("Attempting to connect to server at http://127.0.0.1:5000")
+            sio_client.connect('http://127.0.0.1:5000', transports=['websocket'])
+            connected = True
+            sio_client.wait()  # This will keep the client running
+        except Exception as e:
+            logging.error(f"Connection failed: {e}. Retrying in 1 second...")
+            time.sleep(1)
+
+# -----------------------------------------------------
+# Main: Start the Flask/Socket.IO server and client thread
+# -----------------------------------------------------
 if __name__ == '__main__':
-    sio.connect('http://127.0.0.1:5000', transports=['websocket'])
+    logging.basicConfig(level=logging.DEBUG)
+    # Run the Flask-SocketIO server on port 8050.
     socketio.run(app, debug=True, use_reloader=False, port=8050)
