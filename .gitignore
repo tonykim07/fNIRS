@@ -74,3 +74,6 @@ exports/*
 *.su
 *.idb
 *.pdb
+
+# CSV Files
+*.csv
