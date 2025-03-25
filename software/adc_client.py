@@ -15,13 +15,12 @@ def signal_handler(sig, frame):
         sio.disconnect()
     app.quit()
 
-# Register the signal handler for SIGINT.
 signal.signal(signal.SIGINT, signal_handler)
 
 # Modern UI configuration.
-pg.setConfigOption('antialias', True)  # Smoother curves and text.
-pg.setConfigOption('background', 'w')  # White background.
-pg.setConfigOption('foreground', 'k')  # Black text and lines.
+pg.setConfigOption('antialias', True)    # Smoother curves and text.
+pg.setConfigOption('background', 'w')      # White background.
+pg.setConfigOption('foreground', 'k')      # Black text and lines.
 
 # Create a SocketIO client instance.
 sio = socketio.Client()
@@ -32,66 +31,64 @@ data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 # Create a Qt Application.
 app = QtWidgets.QApplication([])
 
-# Create a main window widget with a vertical layout.
+# Create the main window and layout.
 main_window = QtWidgets.QWidget()
-layout = QtWidgets.QVBoxLayout(main_window)
+main_layout = QtWidgets.QVBoxLayout(main_window)
 
-# Create a Pause/Play button. Initially it says "Pause".
-pause_button = QtWidgets.QPushButton("Pause")
-layout.addWidget(pause_button)
+# Create a top horizontal layout for the legend.
+top_layout = QtWidgets.QHBoxLayout()
+top_layout.addStretch()  # Push the legend to the right.
+
+# Define colors and labels for the traces.
+# Note: The request is for first trace red, second green, and third green.
+trace_colors = ["red", "green", "blue"]
+trace_labels = ["Channel 1", "Channel 2", "Channel 3"]
+
+# Create the legend layout.
+legend_layout = QtWidgets.QHBoxLayout()
+for color, label in zip(trace_colors, trace_labels):
+    # Create a small colored square.
+    square = QtWidgets.QLabel()
+    square.setFixedSize(15, 15)
+    # Set the background color and add a border so the color is clear.
+    square.setStyleSheet(f"background-color: {color}; border: 1px solid black;")
+    # Create a label for the channel.
+    text_label = QtWidgets.QLabel(label)
+    # Arrange the square and label horizontally.
+    item_layout = QtWidgets.QHBoxLayout()
+    item_layout.addWidget(square)
+    item_layout.addWidget(text_label)
+    item_widget = QtWidgets.QWidget()
+    item_widget.setLayout(item_layout)
+    legend_layout.addWidget(item_widget)
+legend_layout.addStretch()
+top_layout.addLayout(legend_layout)
+
+# Add the top layout (legend) to the main layout.
+main_layout.addLayout(top_layout)
 
 # Create a GraphicsLayoutWidget to hold the plots.
 win = pg.GraphicsLayoutWidget(title="Real-Time Sensor Data")
 win.resize(1200, 800)
 
-# Create 8 plots arranged in 4 rows x 2 columns.
 plots = []
 curves = []  # curves[group][trace]
 for group in range(8):
     p = win.addPlot(title=f"Group {group+1}")
     p.showGrid(x=True, y=True, alpha=0.3)  # Softer grid lines.
-    p.setLabel('bottom', 'Timeframe')
+    p.setLabel('bottom', 'Timeframe')       # Set x-axis label.
     group_curves = []
-    # Create 3 traces for this group.
     for trace in range(3):
-        color = pg.intColor(trace, hues=3)
-        curve = p.plot(pen=pg.mkPen(color=color, width=2))
+        pen = pg.mkPen(color=trace_colors[trace], width=2)
+        curve = p.plot(pen=pen)
         group_curves.append(curve)
     plots.append(p)
     curves.append(group_curves)
-    # Arrange plots in two columns.
     if group % 2 == 1:
         win.nextRow()
 
 # Add the plotting widget to the main layout.
-layout.addWidget(win)
-
-# Global flag to track pause/play state.
-paused = False
-
-def toggle_pause():
-    """Toggle pause/play state: disconnect/reconnect SocketIO, stop/restart update timer, and clear queued data."""
-    global paused
-    if not paused:
-        # Pause: disconnect socket, stop timer, clear any queued data.
-        paused = True
-        pause_button.setText("Play")
-        if sio.connected:
-            sio.disconnect()
-        timer.stop()
-        for group_data in data:
-            for deque_obj in group_data:
-                deque_obj.clear()
-        print("Paused plotting and data reception.")
-    else:
-        # Resume: reconnect socket and restart the timer.
-        paused = False
-        pause_button.setText("Pause")
-        sio.connect('http://localhost:5000')
-        timer.start(1)
-        print("Resumed plotting and data reception.")
-
-pause_button.clicked.connect(toggle_pause)
+main_layout.addWidget(win)
 
 @sio.event
 def connect():
@@ -103,9 +100,6 @@ def disconnect():
 
 @sio.on('processed_data')
 def on_processed_data(message):
-    # If paused, ignore any incoming data.
-    if paused:
-        return
     sensor_array = message.get('sensor_array', [])
     print("Received sensor data:", sensor_array)
     if len(sensor_array) == 24:
@@ -118,8 +112,6 @@ def on_processed_data(message):
 
 def update():
     """Update all plots with the latest data."""
-    if paused:
-        return
     for group in range(8):
         for trace in range(3):
             d = list(data[group][trace])
@@ -129,11 +121,11 @@ def update():
 # Create a QTimer to update the plots.
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(1)  # Refresh rate in ms (subject to system performance).
+timer.start(1)  # The actual refresh rate may vary by system performance.
 
 # Connect the SocketIO client.
 sio.connect('http://localhost:5000')
 
-# Show the main window.
-main_window.show()
-sys.exit(app.exec_())
+if __name__ == '__main__':
+    main_window.showFullScreen()
+    sys.exit(app.exec_())
