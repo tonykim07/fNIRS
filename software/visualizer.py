@@ -8,10 +8,9 @@ import signal
 import time
 import logging
 import subprocess
-from flask import Flask, jsonify, send_from_directory, request, send_file
+from flask import Flask, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 from plotly.offline import plot
 import numpy as np
 import nibabel as nib
@@ -19,9 +18,15 @@ import threading
 from queue import Queue
 from scipy.spatial import cKDTree
 import socketio as sio_client_lib
-import matplotlib.pyplot as plt
 import pandas as pd
-import tempfile, os
+import os
+
+# Check command-line arguments for a demo flag.
+demo_mode = any(arg.lower() == 'demo' for arg in sys.argv[1:])
+if demo_mode:
+    logging.info("Demo mode is active.")
+else:
+    logging.info("Demo mode is not active.")
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -578,25 +583,32 @@ def start_processing():
     # Live readings mode is available for ADC only.
     if mode == 'live':
         current_mode = 'adc_live'
-        # current_mode = 'adc'
-        proc1 = subprocess.Popen(['python', 'adc_server.py'])
+        # In demo mode, use the mock server.
+        if demo_mode:
+            proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
+        else:
+            proc1 = subprocess.Popen(['python', 'adc_server.py'])
         time.sleep(1)  # allow server to initialize
         proc2 = subprocess.Popen(['python', 'adc_client.py'])
         running_processes.extend([proc1, proc2])
         return jsonify({'status': 'ADC mode started'})
+    
     # Record & visualize mode is available for both ADC and mBLL.
     elif mode == 'record':
         current_mode = 'record'
-        # Start fNIRS_processing.py which generates 3 CSV files.
-        try:
-            # proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
-            # running_processes.extend([proc])
-            return jsonify({'status': 'processing started'})
-        except Exception as e:
-            return jsonify({'status': 'error', 'message': str(e)}), 500
+        # In demo mode, skip starting fNIRS_processing.py.
+        if demo_mode:
+            return jsonify({'status': 'demo mode active, processing skipped'})
+        else:
+            try:
+                proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
+                running_processes.extend([proc])
+                return jsonify({'status': 'processing started'})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': str(e)}), 500
     else:
         return jsonify({'status': 'error', 'message': 'Invalid mode selected.'}), 400
-    
+
 
 @app.route('/stop_processing', methods=['POST'])
 def stop_processing():
