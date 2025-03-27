@@ -47,14 +47,6 @@ This system is designed for real-time acquisition, processing, and visualization
 
 ## Setup Instructions
 
-### Prerequisites
-
-- **Python 3.x**
-- Required packages (see `requirements.txt`):  
-  Flask, Flask-SocketIO, eventlet, plotly, PyQt5, numpy, pandas, nibabel, scipy, etc.
-
-### Setup Instructions
-
 1. **Clone the Repository:**
    ```bash
    git clone https://github.com/tonykim07/fNIRS.git
@@ -112,11 +104,15 @@ This system is designed for real-time acquisition, processing, and visualization
 
 ## File Descriptions
 
+#### 3D Brain Model 
+
 - **aal.nii:**  
   A NIfTI file containing anatomical brain data used to map sensor positions to brain regions.
 
 - **BrainMesh_Ch2_smoothed.nv:**  
   Contains smoothed brain mesh data for rendering a 3D brain surface.
+
+#### ADC Mode
 
 - **adc_animation.py:**  
   A PyQtGraph-based script that reads ADC data from `data/all_groups.csv` and displays a full-screen real-time animation.
@@ -130,6 +126,8 @@ This system is designed for real-time acquisition, processing, and visualization
 - **adc_server.py:**  
   Reads sensor data from the serial port, parses the data, and emits it via SocketIO for live ADC visualization.
 
+#### mBLL Mode
+
 - **mBLL_animation.py:**  
   A PyQtGraph script that reads processed data from `data/processed_output.csv` and displays a full-screen real-time animation of processed mBLL data.
 
@@ -142,6 +140,8 @@ This system is designed for real-time acquisition, processing, and visualization
 - **mBLL_server.py**  
   Reads sensor data from the serial port, processes it using MBLL and CBSI (via NIRSimple), and emits the processed concentration values via Socket.IO.
 
+#### Others
+
 - **fNIRS_processing.py:**  
   (If included) Processes raw ADC data by interleaving sensor blocks, converting intensities to optical density, applying MBLL and CBSI, and writes processed output to CSV files in `data/`.
 
@@ -153,6 +153,8 @@ This system is designed for real-time acquisition, processing, and visualization
 
 - **index.html**  
   The main web interface built with Bootstrap, Plotly, and jQuery. It provides a 3D brain mesh view, sensor group controls, and a mode selection panel for choosing between live ADC readings or record & visualize (ADC and/or mBLL) modes.
+
+#### Data
 
 - **/data Directory:**
   - **all_groups.csv**  
