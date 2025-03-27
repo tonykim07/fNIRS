@@ -12,6 +12,7 @@ from flask import Flask, jsonify, send_from_directory, request, send_file
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
+from plotly.offline import plot
 import numpy as np
 import nibabel as nib
 import threading
@@ -566,29 +567,6 @@ def update_control_data():
     # ser.write(data_bytes)
     return jsonify({'status': 'success'})
 
-@app.route('/set_mode/<mode>')
-def set_mode(mode):
-    global current_mode
-    if mode.lower() == 'adc':
-        current_mode = 'adc'
-        proc1 = subprocess.Popen(['python', 'adc_server.py'])
-        time.sleep(1)  # allow server to initialize
-        proc2 = subprocess.Popen(['python', 'adc_client.py'])
-        running_processes.extend([proc1, proc2])
-        return jsonify({'status': 'ADC mode started'})
-    elif mode.lower() == 'mbll':
-        current_mode = 'mBLL'
-        # proc1 = subprocess.Popen(['python', 'mBLL_mock_server.py'])
-        proc1 = subprocess.Popen(['python', 'mBLL_server.py'])
-        time.sleep(2)
-        # Start the Socket.IO client connection in a background thread.
-        threading.Thread(target=run_socketio_client, daemon=True).start()
-        proc2 = subprocess.Popen(['python', 'mBLL_client.py'])
-        running_processes.extend([proc1, proc2])
-        return jsonify({'status': 'mBLL mode selected'})
-    else:
-        return jsonify({'status': 'Invalid mode selected'}), 400
-
 
 @app.route('/start_processing', methods=['POST'])
 def start_processing():
@@ -638,38 +616,157 @@ def download_file(source):
     filename = csv_map.get(source)
     if not filename:
         return jsonify({'status': 'error', 'message': 'Invalid source.'}), 400
-    return send_from_directory('data', filename, as_attachment=True)
+    # Retrieve the file name provided by the user, or default to the filename.
+    download_name = request.args.get('filename', filename)
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    
+    return send_from_directory(data_dir, filename, as_attachment=True, download_name=download_name)
 
 
 @app.route('/view_static/ADC')
-def view_static_adc_matplotlib():
-
-    # Load CSV data.
+def view_static_adc_plotly():
+    # Load CSV data from the "data" folder.
     df = pd.read_csv('data/all_groups.csv')
     
-    # Create a figure with 8 subplots (4 rows x 2 columns).
-    fig, axes = plt.subplots(4, 2, figsize=(12, 12))
-    axes = axes.flatten()
-
+    # Build separate figures for each group.
+    figures_html = ""
     for i in range(8):
-        ax = axes[i]
-        # Plot Short, Long1, and Long2 for group i.
-        ax.plot(df["Time (s)"], df[f"G{i}_Short"], label="Short", color='red')
-        ax.plot(df["Time (s)"], df[f"G{i}_Long1"], label="Long1", color='green')
-        ax.plot(df["Time (s)"], df[f"G{i}_Long2"], label="Long2", color='blue')
-        ax.set_title(f"Group {i+1}")
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Value")
-        ax.legend()
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x = df["Time (s)"],
+            y = df[f"G{i}_Short"],
+            mode = 'lines',
+            name = 'Short'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time (s)"],
+            y = df[f"G{i}_Long1"],
+            mode = 'lines',
+            name = 'Long1'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time (s)"],
+            y = df[f"G{i}_Long2"],
+            mode = 'lines',
+            name = 'Long2'
+        ))
+        
+        fig.update_layout(
+            title = f"Group {i+1}",
+            xaxis_title = "Time (s)",
+            yaxis_title = "Value",
+            autosize=True,
+            margin=dict(l=50, r=50, t=50, b=50)
+        )
+        
+        # Generate an HTML div for this figure without including Plotly.js again.
+        div = plot(fig, output_type='div', include_plotlyjs=False, config={'displayModeBar': True, 'responsive': True})
+        figures_html += f"<div style='margin-bottom:50px;'>{div}</div>"
     
-    plt.tight_layout()
-    
-    # Save the figure to a temporary file.
-    temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-    plt.savefig(temp_file.name)
-    plt.close(fig)
+    # Include Plotly.js only once in the head.
+    html = f"""
+    <html>
+      <head>
+         <title>ADC Static Plots</title>
+         <meta charset="UTF-8">
+         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+         <style>
+           body {{
+             margin: 0;
+             padding: 20px;
+             background-color: #eef2f7;
+             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+           }}
+         </style>
+      </head>
+      <body>
+         {figures_html}
+      </body>
+    </html>
+    """
+    return html
 
-    return send_file(temp_file.name, mimetype='image/png')
+@app.route('/view_static/mBLL')
+def view_static_mbll_plotly():
+    # Load CSV data from the "data" folder.
+    df = pd.read_csv('data/processed_output.csv')
+    
+    # Build separate figures for each group.
+    figures_html = ""
+    for i in range(1, 9):
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D1_hbo"],
+            mode = 'lines',
+            name = 'D1_hbo'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D1_hbr"],
+            mode = 'lines',
+            name = 'D1_hbr'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D2_hbo"],
+            mode = 'lines',
+            name = 'D2_hbo'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D2_hbr"],
+            mode = 'lines',
+            name = 'D2_hbr'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D3_hbo"],
+            mode = 'lines',
+            name = 'D3_hbo'
+        ))
+        fig.add_trace(go.Scatter(
+            x = df["Time"],
+            y = df[f"S{i}_D3_hbr"],
+            mode = 'lines',
+            name = 'D3_hbr'
+        ))
+        
+        fig.update_layout(
+            title = f"Group {i+1}",
+            xaxis_title = "Time (s)",
+            # yaxis_title = "Value",
+            autosize=True,
+            margin=dict(l=50, r=50, t=50, b=50)
+        )
+        
+        # Generate an HTML div for this figure without including Plotly.js again.
+        div = plot(fig, output_type='div', include_plotlyjs=False, config={'displayModeBar': True, 'responsive': True})
+        figures_html += f"<div style='margin-bottom:50px;'>{div}</div>"
+    
+    # Include Plotly.js only once in the head.
+    html = f"""
+    <html>
+      <head>
+         <title>ADC Static Plots</title>
+         <meta charset="UTF-8">
+         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+         <style>
+           body {{
+             margin: 0;
+             padding: 20px;
+             background-color: #eef2f7;
+             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+           }}
+         </style>
+      </head>
+      <body>
+         {figures_html}
+      </body>
+    </html>
+    """
+    return html
+
 
 @app.route('/view_animation/ADC')
 def view_animation_adc():

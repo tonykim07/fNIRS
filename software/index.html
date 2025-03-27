@@ -600,6 +600,10 @@
 
     function toggleMode() {
       if (!processingStarted) {
+        // Hide per-source button groups and mode selection card if they are showing.
+        $("#sourceButtons").hide();
+        $("#modeSelection").hide(); // Only if you have added id="modeSelection" to your mode selection card.
+
         // Start mode.
         var selectedMode = $('input[name="mode"]:checked').val();
         if (!selectedMode) {
@@ -663,6 +667,9 @@
             });
             $("#sourceButtons").html(html);
             $("#sourceButtons").show();
+
+            // Optionally, show the mode selection card again.
+            $("#modeSelection").show();
           },
           error: function (err) {
             console.error("Error stopping processing:", err);
@@ -673,7 +680,12 @@
 
     // Function to download CSV for a given source.
     function downloadCSV(source) {
-      window.location.href = '/download/' + source;
+      // Default filename: source.csv (e.g., ADC.csv)
+      let defaultName = source + ".csv";
+      let fileName = prompt("Please enter the file name for download (e.g., mydata.csv):", defaultName);
+      if (fileName) {
+        window.location.href = '/download/' + source + '?filename=' + encodeURIComponent(fileName);
+      }
     }
 
     // Function to view the static plot for a given source.
