@@ -87,9 +87,9 @@ class MainWindow(QtWidgets.QWidget):
         self.setLayout(layout)
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plots)
-        self.timer.start(50)
+        self.timer.start(10)
 
-        self.skip = 2
+        self.skip = 6
 
     @QtCore.pyqtSlot(list)
     def on_batched_data_received(self, frames):
@@ -117,6 +117,8 @@ class MainWindow(QtWidgets.QWidget):
                     d_thinned = d[::self.skip]
                     x_thinned = range(len(d_thinned))
                     self.curves[g][ch_idx].setData(x_thinned, d_thinned)
+
+
 
 def main():
     import signal
