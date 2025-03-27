@@ -3,11 +3,12 @@ import serial
 import json
 eventlet.monkey_patch()
 
+import sys
 import signal
 import time
 import logging
 import subprocess
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, send_from_directory, request, send_file
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -17,6 +18,9 @@ import threading
 from queue import Queue
 from scipy.spatial import cKDTree
 import socketio as sio_client_lib
+import matplotlib.pyplot as plt
+import pandas as pd
+import tempfile, os
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -31,8 +35,6 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 # -----------------------------------------------------
 # Global Variables and Data Queue (for processed packets)
 # -----------------------------------------------------
-current_mode = 'default'  # default mode when the app starts
-# Data queue to store incoming data
 data_queue = Queue(maxsize=20)
 data_lock = threading.Lock()  # Create a lock for synchronization
 
@@ -53,7 +55,7 @@ def disconnect():
 def processed_data(data):
     """Called when a new processed data packet is received."""
     activation_data = np.array(data['concentrations'])
-    # logging.info(f"Received new data: {activation_data}")
+    logging.info(f"Received new data: {activation_data}")
     if activation_data.ndim == 1:
         activation_data = activation_data.reshape(-1, 1)
     with data_lock:
@@ -316,7 +318,10 @@ emitter_states = [True] * len(emitter_positions)
 
 # Global variable to store accumulated activation data
 activation_history = None
+processing_proc = None
 running_processes = []
+current_mode = None
+current_sources = []
 
 # Define control data (emitter and mux control states)
 control_data = {
@@ -490,7 +495,7 @@ def highlight_sensor_group(fig, group_id):
 def update_graphs(latest_packet):
     global brain_mesh_fig
     total_start = time.perf_counter()  # start of the function
-    logging.info(f"Updating brain mesh with new data: {latest_packet}")
+    # logging.info(f"Updating brain mesh with new data: {latest_packet}")
     
     if latest_packet is None:
         return
@@ -512,7 +517,7 @@ def update_graphs(latest_packet):
     update_time = update_end - update_start
     percentage = (update_time / overall_time) * 100 if overall_time else 0
 
-    logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
+    # logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
     
     socketio.emit('brain_mesh_update', {
         'brain_mesh': brain_mesh_fig.to_json()
@@ -566,14 +571,15 @@ def set_mode(mode):
     global current_mode
     if mode.lower() == 'adc':
         current_mode = 'adc'
-        proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
+        proc1 = subprocess.Popen(['python', 'adc_server.py'])
         time.sleep(1)  # allow server to initialize
         proc2 = subprocess.Popen(['python', 'adc_client.py'])
         running_processes.extend([proc1, proc2])
         return jsonify({'status': 'ADC mode started'})
     elif mode.lower() == 'mbll':
         current_mode = 'mBLL'
-        proc1 = subprocess.Popen(['python', 'mBLL_mock_server.py'])
+        # proc1 = subprocess.Popen(['python', 'mBLL_mock_server.py'])
+        proc1 = subprocess.Popen(['python', 'mBLL_server.py'])
         time.sleep(2)
         # Start the Socket.IO client connection in a background thread.
         threading.Thread(target=run_socketio_client, daemon=True).start()
@@ -583,14 +589,97 @@ def set_mode(mode):
     else:
         return jsonify({'status': 'Invalid mode selected'}), 400
 
-@app.route('/stop_mode')
-def stop_mode():
-    global current_mode, running_processes
+
+@app.route('/start_processing', methods=['POST'])
+def start_processing():
+    global processing_proc, current_mode, current_sources
+    data = request.get_json()
+    mode = data.get('mode')      # "live" or "record"
+    current_sources = data.get('sources', [])
+    
+    # Live readings mode is available for ADC only.
+    if mode == 'live':
+        current_mode = 'adc_live'
+        # current_mode = 'adc'
+        proc1 = subprocess.Popen(['python', 'adc_server.py'])
+        time.sleep(1)  # allow server to initialize
+        proc2 = subprocess.Popen(['python', 'adc_client.py'])
+        running_processes.extend([proc1, proc2])
+        return jsonify({'status': 'ADC mode started'})
+    # Record & visualize mode is available for both ADC and mBLL.
+    elif mode == 'record':
+        current_mode = 'record'
+        # Start fNIRS_processing.py which generates 3 CSV files.
+        try:
+            # proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
+            # running_processes.extend([proc])
+            return jsonify({'status': 'processing started'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    else:
+        return jsonify({'status': 'error', 'message': 'Invalid mode selected.'}), 400
+    
+
+@app.route('/stop_processing', methods=['POST'])
+def stop_processing():
+    global running_processes
     for proc in running_processes:
         proc.terminate()  # or proc.kill() if necessary
     running_processes = []
-    current_mode = 'default'
-    return jsonify({'status': 'Mode stopped, returning to default'})
+    return jsonify({'status': 'processing stopped'})
+
+@app.route('/download/<source>')
+def download_file(source):
+    # Map each source to its CSV file name (adjust as needed)
+    csv_map = {
+        'ADC': 'all_groups.csv',
+        'mBLL': 'processed_output.csv'
+    }
+    filename = csv_map.get(source)
+    if not filename:
+        return jsonify({'status': 'error', 'message': 'Invalid source.'}), 400
+    return send_from_directory('data', filename, as_attachment=True)
+
+
+@app.route('/view_static/ADC')
+def view_static_adc_matplotlib():
+
+    # Load CSV data.
+    df = pd.read_csv('data/all_groups.csv')
+    
+    # Create a figure with 8 subplots (4 rows x 2 columns).
+    fig, axes = plt.subplots(4, 2, figsize=(12, 12))
+    axes = axes.flatten()
+
+    for i in range(8):
+        ax = axes[i]
+        # Plot Short, Long1, and Long2 for group i.
+        ax.plot(df["Time (s)"], df[f"G{i}_Short"], label="Short", color='red')
+        ax.plot(df["Time (s)"], df[f"G{i}_Long1"], label="Long1", color='green')
+        ax.plot(df["Time (s)"], df[f"G{i}_Long2"], label="Long2", color='blue')
+        ax.set_title(f"Group {i+1}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Value")
+        ax.legend()
+    
+    plt.tight_layout()
+    
+    # Save the figure to a temporary file.
+    temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+    plt.savefig(temp_file.name)
+    plt.close(fig)
+
+    return send_file(temp_file.name, mimetype='image/png')
+
+@app.route('/view_animation/ADC')
+def view_animation_adc():
+    subprocess.Popen([sys.executable, 'adc_animation.py'])
+    return ('', 204)
+
+@app.route('/view_animation/mBLL')
+def view_animation_mbll():
+    subprocess.Popen([sys.executable, 'mBLL_animation.py'])
+    return ('', 204)
 
 # -----------------------------------------------------
 # Start the Upstream Client in a Background Thread

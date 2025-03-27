@@ -266,14 +266,32 @@
         <div class="card mt-4">
           <div class="card-header">Mode Selection</div>
           <div class="card-body">
-            <label for="modeSelect">Select Mode:</label>
-            <select id="modeSelect">
-              <option value="none">Select a mode</option>
-              <option value="ADC">ADC</option>
-              <option value="mBLL">mBLL</option>
-            </select>
-            <br><br>
+            <p><strong>Select Mode:</strong></p>
+            <div>
+              <input type="radio" id="live_mode" name="mode" value="live">
+              <label for="live_mode">Live Readings (ADC Only)</label>
+            </div>
+            <div>
+              <input type="radio" id="record_mode" name="mode" value="record">
+              <label for="record_mode">Record & Visualize (ADC and/or mBLL)</label>
+            </div>
+            <div id="record_options" style="display:none; margin-top:10px;">
+              <p><strong>Select Sources:</strong></p>
+              <div>
+                <input type="checkbox" id="source_ADC" name="source" value="ADC">
+                <label for="source_ADC">ADC</label>
+              </div>
+              <div>
+                <input type="checkbox" id="source_mBLL" name="source" value="mBLL">
+                <label for="source_mBLL">mBLL</label>
+              </div>
+            </div>
+            <br>
             <button id="modeToggleButton" class="btn btn-custom btn-block" onclick="toggleMode()">Start</button>
+            <div id="stopwatch" style="margin-top:10px; font-size:20px; text-align:center; display:none;">00:00</div>
+            <br>
+            <!-- Container for per-source button groups (hidden until recording stops) -->
+            <div id="sourceButtons" style="display:none;"></div>
           </div>
         </div>
 
@@ -295,6 +313,12 @@
     var currentGroup = null;  // global variable to store the selected group
     var currentCamera = null; // Global variable to store current camera settings
     var modeStarted = false; // Tracks whether a mode is running.
+    var selectedSources = [];
+
+    // Global variables for timer and process state.
+    var timerInterval;
+    var elapsedSeconds = 0;
+    var processingStarted = false;
 
     // Emitter & MUX control logic
     let controlData = {
@@ -311,6 +335,15 @@
       console.log('Received brain mesh update:', data);
       const brainFig = JSON.parse(data.brain_mesh);
       Plotly.react("brainMeshContainer", brainFig.data, brainFig.layout);
+    });
+
+    // Toggle additional options if "Record & Visualize" is selected.
+    $('input[name="mode"]').change(function () {
+      if ($(this).val() === 'record') {
+        $('#record_options').show();
+      } else {
+        $('#record_options').hide();
+      }
     });
 
     // Attach a listener to capture camera changes.
@@ -528,7 +561,7 @@
     // Function to update brain mesh and sensor charts
     function updateGraphs() {
       var endpoint = currentGroup !== null ? '/select_group/' + currentGroup : '/update_graphs';
-      console.log('Updating graphs with endpoint:', endpoint);
+      // console.log('Updating graphs with endpoint:', endpoint);
       $.getJSON(endpoint, function (data) {
         // Update brain mesh
         if (data.brain_mesh) {
@@ -554,43 +587,105 @@
       });
     }
 
+    // Update stopwatch display.
+    function updateStopwatch() {
+      elapsedSeconds++;
+      var minutes = Math.floor(elapsedSeconds / 60);
+      var seconds = elapsedSeconds % 60;
+      $('#stopwatch').text(
+        (minutes < 10 ? "0" + minutes : minutes) + ":" +
+        (seconds < 10 ? "0" + seconds : seconds)
+      );
+    }
+
     function toggleMode() {
-      if (!modeStarted) {
-        // Starting mode: verify a mode is selected.
-        var selectedMode = document.getElementById("modeSelect").value;
-        if (selectedMode === "none") {
-          alert("Please select a mode before starting.");
+      if (!processingStarted) {
+        // Start mode.
+        var selectedMode = $('input[name="mode"]:checked').val();
+        if (!selectedMode) {
+          alert("Please select a mode.");
           return;
         }
-        // Start the mode by calling the appropriate endpoint.
+        // Determine sources.
+        if (selectedMode === 'live') {
+          selectedSources = ["ADC"];
+        } else if (selectedMode === 'record') {
+          selectedSources = [];
+          if ($('#source_ADC').is(':checked')) selectedSources.push("ADC");
+          if ($('#source_mBLL').is(':checked')) selectedSources.push("mBLL");
+          if (selectedSources.length === 0) {
+            alert("Please select at least one source (ADC and/or mBLL) for Record & Visualize.");
+            return;
+          }
+        }
+        // Send start request to server.
         $.ajax({
-          url: "/set_mode/" + selectedMode,
-          method: "GET",
+          url: '/start_processing',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            mode: selectedMode,
+            sources: selectedSources
+          }),
           success: function (response) {
-            console.log(selectedMode + " mode started:", response);
-            $("#modeToggleButton").text("Stop");
-            modeStarted = true;
+            console.log(response.status);
+            processingStarted = true;
+            $('#modeToggleButton').text("Stop and Plot");
+            $('#stopwatch').show();
+            elapsedSeconds = 0;
+            timerInterval = setInterval(updateStopwatch, 1000);
           },
           error: function (err) {
-            console.error("Error starting mode:", err);
+            console.error("Error starting processing:", err);
           }
         });
       } else {
-        // Stopping mode: call the stop endpoint.
+        // Stop mode.
         $.ajax({
-          url: "/stop_mode",
-          method: "GET",
+          url: '/stop_processing',
+          method: 'POST',
           success: function (response) {
-            console.log("Mode stopped:", response);
-            $("#modeToggleButton").text("Start");
-            $("#modeSelect").val("none");
-            modeStarted = false;
+            console.log(response.status);
+            processingStarted = false;
+            clearInterval(timerInterval);
+            $('#stopwatch').hide();
+            $('#modeToggleButton').text("Start");
+
+            // Build per-source button groups.
+            var html = "";
+            selectedSources.forEach(function (source) {
+              html += "<div class='source-group' style='margin-bottom:15px;'>";
+              html += "<h5>" + source + "</h5>";
+              html += "<button class='btn btn-custom' onclick='downloadCSV(\"" + source + "\")'>Download CSV</button> ";
+              html += "<button class='btn btn-custom' onclick='viewStatic(\"" + source + "\")'>View Static Plot</button> ";
+              html += "<button class='btn btn-custom' onclick='viewAnimation(\"" + source + "\")'>View Animation</button>";
+              html += "</div>";
+            });
+            $("#sourceButtons").html(html);
+            $("#sourceButtons").show();
           },
           error: function (err) {
-            console.error("Error stopping mode:", err);
+            console.error("Error stopping processing:", err);
           }
         });
       }
+    }
+
+    // Function to download CSV for a given source.
+    function downloadCSV(source) {
+      window.location.href = '/download/' + source;
+    }
+
+    // Function to view the static plot for a given source.
+    function viewStatic(source) {
+      window.open('/view_static/' + source, '_blank');
+    }
+
+    function viewAnimation(source) {
+      $.ajax({
+        url: '/view_animation/' + source,
+        method: 'GET'
+      });
     }
 
   </script>

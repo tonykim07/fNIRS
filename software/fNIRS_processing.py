@@ -10,6 +10,8 @@ import time
 import csv
 import pandas as pd
 import sys
+import os
+
 
 # Set up serial connection and use the appropriate keyboard functions based on platform
 if sys.platform.startswith('win'):
@@ -301,12 +303,16 @@ def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ex
 # ------------------ Main ------------------
 if __name__ == '__main__':
 
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
     # Capture Data
     stop_flag=None # set to 1 from GUI to stop processing
-    capture_data("all_groups.csv", stop_on_enter=True, external_stop_flag=stop_flag)
+    capture_data(os.path.join(data_dir, "all_groups.csv"), stop_on_enter=True, external_stop_flag=stop_flag)
 
     # Read CSV file
-    df = pd.read_csv("all_groups.csv")
+    df = pd.read_csv(os.path.join(data_dir, "all_groups.csv"))
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
@@ -329,12 +335,13 @@ if __name__ == '__main__':
     final_df["Time (s)"] = final_df["Time (s)"].round(3)
 
     # 6) Write the final DataFrame to CSV
-    final_df.to_csv("interleaved_output.csv", index=False)
-
+    final_output = os.path.join(data_dir, "interleaved_output.csv")
+    final_df.to_csv(final_output, index=False)
+    
     # 7) Output the resulting DataFrame.
     print(final_df.head(20))
 
     # 8) Process collected data
-    input_csv = "interleaved_output.csv"  # Path to input CSV file
-    output_csv = "processed_output.csv" # Desired output CSV file name
+    input_csv = os.path.join(data_dir, "interleaved_output.csv")
+    output_csv = os.path.join(data_dir, "processed_output.csv")
     process_csv_dataset(input_csv, output_csv)

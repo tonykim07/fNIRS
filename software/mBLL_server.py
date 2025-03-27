@@ -1,4 +1,3 @@
-from fnirs_data_processing import DataProcessor as DataProcessor
 import nirsimple.processing as nproc
 import nirsimple.preprocessing as nsp
 from tabulate import tabulate
@@ -27,6 +26,85 @@ ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 115200,
                     timeout=1)  # Replace with your actual port
 
 
+# -------------------- DataProcessor Code --------------------
+class DataProcessor:
+    def __init__(self, age=22, sd_distance=5.0, molar_ext_coeff_table='wray', n_times_buffer=50):
+        self.AGE = age
+        self.SD_DISTANCE = sd_distance
+        self.MOLAR_EXT_COEFF_TABLE = molar_ext_coeff_table
+        self.n_channels_total = 48
+        self.n_times_buffer = n_times_buffer
+        self.raw_buffer = np.zeros((self.n_channels_total, self.n_times_buffer))
+        self.buffer_initialized = False
+        self.last_660_packet = None
+        self.last_940_packet = None
+
+        # Build channel names for NIRSimple
+        physical_channels = []
+        for set_idx in range(1, 9):
+            for det in range(1, 4):
+                physical_channels.append(f"S{set_idx}_D{det}")
+        self.channel_names = []
+        self.ch_wls = []
+        for name in physical_channels:
+            self.channel_names.append(name)   # for 660 nm measurement
+            self.ch_wls.append(660.0)
+            self.channel_names.append(name)   # for 940 nm measurement
+            self.ch_wls.append(940.0)
+
+        self.ch_dpfs = [nsp.get_dpf(wl, self.AGE) for wl in self.ch_wls]
+        self.ch_distances = [self.SD_DISTANCE] * len(self.ch_wls)
+        self.unit = 'cm'
+
+    def combine_packets(self, packet_660, packet_940):
+        sample = np.zeros(48)
+        for i in range(packet_660.shape[0]):
+            group_id = packet_660[i, 0]
+            index = np.where(packet_940[:, 0] == group_id)[0][0]
+            row660 = packet_660[i, :]
+            row940 = packet_940[index, :]
+            base = (group_id - 1) * 6
+            for j in range(3):
+                sample[base + j * 2]     = row660[1 + j]
+                sample[base + j * 2 + 1] = row940[1 + j]
+        return sample
+
+    def process_data_packet(self, packet):
+        mode = packet[0, 4]
+        if mode == 1:
+            self.last_660_packet = packet
+        elif mode == 2:
+            self.last_940_packet = packet
+
+        if self.last_660_packet is not None and self.last_940_packet is not None:
+            sample = self.combine_packets(self.last_660_packet, self.last_940_packet)
+            if not self.buffer_initialized:
+                self.raw_buffer = np.tile(sample.reshape(-1, 1), (1, self.n_times_buffer))
+                self.buffer_initialized = True
+            else:
+                self.raw_buffer = np.roll(self.raw_buffer, -1, axis=1)
+                self.raw_buffer[:, -1] = sample
+
+            delta_od = nsp.intensities_to_od_changes(self.raw_buffer)
+            delta_c, new_ch_names, new_ch_types = nsp.mbll(
+                delta_od,
+                self.channel_names,
+                self.ch_wls,
+                self.ch_dpfs,
+                self.ch_distances,
+                self.unit,
+                table=self.MOLAR_EXT_COEFF_TABLE
+            )
+            delta_c_corr, corr_ch_names, corr_ch_types = nproc.cbsi(delta_c, new_ch_names, new_ch_types)
+            concentration_values = delta_c_corr[:, -1]
+            table_data = []
+            for i, name in enumerate(corr_ch_names):
+                table_data.append([name, corr_ch_types[i], f"{concentration_values[i]:.4e} M"])
+            return concentration_values.tolist(), table_data
+        else:
+            return None
+
+
 def parse_packet(data):
     """
     Parses 64 raw bytes into an 8×5 array of sensor data:
@@ -49,17 +127,6 @@ def parse_packet(data):
             emitter_status
         ]
     return parsed_data
-
-
-def print_sensor_data(parsed_data):
-    """
-    Displays the 8×5 sensor array nicely.
-    Rows => [Group ID, Short, Long1, Long2, Emitter].
-    """
-    print("\n--------------------------------------------------")
-    print("Formatted Sensor Data (8×5 Array):")
-    print(parsed_data)
-    print("\nEach row represents: [Group ID, Short, Long1, Long2, Emitter]")
 
 
 def data_processing_task():
