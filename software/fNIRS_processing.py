@@ -9,8 +9,22 @@ import time
 import csv
 import pandas as pd
 import sys
-from visualizer import ser  # shared serial connection
+# from visualizer import ser  # shared serial connection
+import signal
+import serial
 
+ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01)
+
+
+stop_flag = False  # Global flag for stopping the capture loop
+
+def handle_stop_signal(signum, frame):
+    global stop_flag
+    print("Received stop signal, setting stop_flag to True.")
+    stop_flag = True
+
+# Register the handler for SIGUSR1
+signal.signal(signal.SIGUSR1, handle_stop_signal)
 
 def parse_packet(data):
     """ 
@@ -50,13 +64,9 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                           If provided and external_stop_flag.is_set() returns True,
                           the capture loop will stop.
     """
-    # Clear the stop flag by writing "0" at the start.
-    try:
-        with open("stop_flag.txt", "w") as f:
-            f.write("0")
-    except Exception as e:
-        print("Error initializing stop flag:", e)
-
+    global stop_flag
+    stop_flag = False  # Reset the flag at the start
+    
     with open(csv_filename, mode='w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         header = ["Time (s)"]
@@ -72,16 +82,9 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
 
         try:
             while True:
-                # Check the stop flag file.
-                try:
-                    with open("stop_flag.txt", "r") as flag_file:
-                        flag = flag_file.read().strip()
-                    if flag == "1":
-                        print("Stop flag detected. Stopping capture...")
-                        break
-                except Exception as e:
-                    print("Error reading stop flag:", e)
-
+                if stop_flag:
+                    print("Stop flag detected. Stopping capture...")
+                    break
                 data = ser.read(64)
                 if len(data) == 64:
                     parsed_data = parse_packet(data)

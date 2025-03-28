@@ -313,7 +313,6 @@
     var currentGroup = null;  // global variable to store the selected group
     var currentCamera = null; // Global variable to store current camera settings
     var currentMode = null;  // Global variable to store the selected mode.
-    var modeStarted = false; // Tracks whether a mode is running.
     var selectedSources = [];
 
     // Global variables for timer and process state.
@@ -486,6 +485,7 @@
 
       // Initial rendering of graphs and control UI
       updateGraphs();
+      setInterval(flashEmitters, 4000);
     });
 
 
@@ -547,6 +547,36 @@
       }
       return value;
     }
+
+    function getEmitterTraceIndices() {
+      var brainDiv = document.getElementById("brainMeshContainer");
+      var indices = [];
+      for (var i = 0; i < brainDiv.data.length; i++) {
+        if (brainDiv.data[i].name === "Emitter") {
+          indices.push(i);
+        }
+      }
+      return indices;
+    }
+
+    function flashEmitters() {
+      var overrideEnabled = document.getElementById('emitter_control_override_enable').checked;
+      // Only flash if override is not enabled.
+      if (!overrideEnabled) {
+        var brainDiv = document.getElementById("brainMeshContainer");
+        // Get the emitter trace indices.
+        var emitterIndices = getEmitterTraceIndices();
+        if (emitterIndices.length > 0) {
+          // Temporarily set color to LED_GREEN (#39FF14) for all emitter traces.
+          Plotly.restyle(brainDiv, { 'color': ['#39FF14'] }, emitterIndices);
+          // After 500ms, restore the original colors.
+          setTimeout(function () {
+            updateEmitterColors();
+          }, 500);
+        }
+      }
+    }
+
 
     // Update UI based on control data
     function updateUI() {

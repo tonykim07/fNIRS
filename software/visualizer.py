@@ -43,6 +43,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 # -----------------------------------------------------
 data_queue = Queue(maxsize=20)
 data_lock = threading.Lock()  # Create a lock for synchronization
+reader_thread = None
 
 # -----------------------------------------------------
 # Upstream Socket.IO Client Setup (receives processed_data)
@@ -530,6 +531,25 @@ def update_graphs(latest_packet):
     })
 
 
+def stop_serial_reader():
+    global ser
+    try:
+        ser.close()
+        logging.info("Serial connection closed for record mode.")
+    except Exception as e:
+        logging.error(f"Error closing serial port: {e}")
+        
+def reinit_serial_connection():
+    global ser
+    SERIAL_PORT = '/dev/tty.usbmodem205D388A47311'
+    BAUD_RATE = 9600
+    try:
+        ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=0.01)
+        logging.info("Serial connection reinitialized.")
+    except Exception as e:
+        logging.error(f"Error reinitializing serial port: {e}")
+
+    
 # -------------------- Flask Routes --------------------
 
 @app.route('/')
@@ -591,6 +611,7 @@ def start_processing():
             proc2 = subprocess.Popen(['python', 'adc_client.py'])
             running_processes.extend([proc1, proc2])
         else:
+            stop_serial_reader()
             proc = subprocess.Popen(['python', 'adc_live.py'])
             running_processes.append(proc)
         return jsonify({'status': 'ADC mode started'})
@@ -603,6 +624,9 @@ def start_processing():
             return jsonify({'status': 'demo mode active, processing skipped'})
         else:
             try:
+                # Stop the visualizer's serial reading
+                stop_serial_reader()
+                # Now launch fnirs_processing.py which creates its own serial connection.
                 proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
                 running_processes.extend([proc])
                 return jsonify({'status': 'processing started'})
@@ -614,14 +638,22 @@ def start_processing():
 
 @app.route('/stop_processing', methods=['POST'])
 def stop_processing():
-    # Instead of killing the process, signal it by writing "1" to the stop flag file.
+    global running_processes
+    # Send SIGUSR1 to each subprocess so that they stop gracefully.
+    for proc in running_processes:
+        os.kill(proc.pid, signal.SIGUSR1)
+    running_processes = []
+    # Wait a short time to ensure fnirs_processing.py has closed its connection.
+    time.sleep(1)
+    # Reinitialize the serial connection and restart the reader.
     try:
-        with open("stop_flag.txt", "w") as f:
-            f.write("1")
-        logging.info("Stop flag set; fNIRS_processing.py should exit gracefully.")
+        if not ser.is_open:
+            reinit_serial_connection()
+        else:
+            logging.info("Serial connection is already open; no need to reinitialize.")
     except Exception as e:
-        logging.error(f"Error setting stop flag: {e}")
-    return jsonify({'status': 'stop flag set'})
+        logging.error(f"Error checking serial connection: {e}")    
+    return jsonify({'status': 'processing stop signal sent and serial reinitialized'})
 
 
 @app.route('/download/<source>')

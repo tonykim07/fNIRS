@@ -5,13 +5,15 @@ import numpy as np
 import serial
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
-from visualizer import ser  # shared serial connection
+# from visualizer import ser  # shared serial connection
 
 SERIAL_PORT = '/dev/tty.usbmodem205D388A47311'
 BAUD_RATE = 9600
 PACKET_SIZE = 64
 NOISE_LEVEL = 2050
 # ser is imported from visualizer.py
+
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.01)
 
 # Define colors and labels for the traces.
 trace_colors = ["red", "green", "blue"]
