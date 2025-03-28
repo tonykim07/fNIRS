@@ -143,13 +143,10 @@ This system is designed for real-time acquisition, processing, and visualization
 #### Others
 
 - **fNIRS_processing.py:**  
-  (If included) Processes raw ADC data by interleaving sensor blocks, converting intensities to optical density, applying MBLL and CBSI, and writes processed output to CSV files in `data/`.
+  Processes raw ADC data by interleaving sensor blocks, converting intensities to optical density, applying MBLL and CBSI, and writes processed output to CSV files in `data/`.
 
 - **visualizer.py:**  
   The main Flask/SocketIO server that integrates data capture, processing, interactive visualization (including static plots and animations), and control endpoints. It also supports demo mode behavior.
-
-- **fNIRS_processing.py:**  
-  (If applicable) Processes raw CSV data (interleaving, OD conversion, MBLL, CBSI) and produces processed output for visualization in record & visualize mode.
 
 - **index.html**  
   The main web interface built with Bootstrap, Plotly, and jQuery. It provides a 3D brain mesh view, sensor group controls, and a mode selection panel for choosing between live ADC readings or record & visualize (ADC and/or mBLL) modes.
