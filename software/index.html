@@ -312,6 +312,7 @@
 
     var currentGroup = null;  // global variable to store the selected group
     var currentCamera = null; // Global variable to store current camera settings
+    var currentMode = null;  // Global variable to store the selected mode.
     var modeStarted = false; // Tracks whether a mode is running.
     var selectedSources = [];
 
@@ -600,16 +601,18 @@
 
     function toggleMode() {
       if (!processingStarted) {
-        // Hide per-source button groups and mode selection card if they are showing.
+        // Start mode: hide per-source buttons and (if record mode) the mode selection card.
         $("#sourceButtons").hide();
-        $("#modeSelection").hide(); // Only if you have added id="modeSelection" to your mode selection card.
+        $("#modeSelection").hide(); // if you have this container
 
-        // Start mode.
+        // Get selected mode from radio buttons.
         var selectedMode = $('input[name="mode"]:checked').val();
         if (!selectedMode) {
           alert("Please select a mode.");
           return;
         }
+        currentMode = selectedMode; // save the selected mode
+
         // Determine sources.
         if (selectedMode === 'live') {
           selectedSources = ["ADC"];
@@ -622,6 +625,7 @@
             return;
           }
         }
+
         // Send start request to server.
         $.ajax({
           url: '/start_processing',
@@ -634,10 +638,17 @@
           success: function (response) {
             console.log(response.status);
             processingStarted = true;
-            $('#modeToggleButton').text("Stop and Plot");
-            $('#stopwatch').show();
-            elapsedSeconds = 0;
-            timerInterval = setInterval(updateStopwatch, 1000);
+            // For ADC live mode, do not show stopwatch and use "Stop" as button text.
+            if (selectedMode === 'live') {
+              $('#modeToggleButton').text("Stop");
+              $('#stopwatch').hide();
+            } else {
+              // For record mode, show the stopwatch and set button text accordingly.
+              $('#modeToggleButton').text("Stop Recording");
+              $('#stopwatch').show();
+              elapsedSeconds = 0;
+              timerInterval = setInterval(updateStopwatch, 1000);
+            }
           },
           error: function (err) {
             console.error("Error starting processing:", err);
@@ -655,21 +666,24 @@
             $('#stopwatch').hide();
             $('#modeToggleButton').text("Start");
 
-            // Build per-source button groups.
-            var html = "";
-            selectedSources.forEach(function (source) {
-              html += "<div class='source-group' style='margin-bottom:15px;'>";
-              html += "<h5>" + source + "</h5>";
-              html += "<button class='btn btn-custom' onclick='downloadCSV(\"" + source + "\")'>Download CSV</button> ";
-              html += "<button class='btn btn-custom' onclick='viewStatic(\"" + source + "\")'>View Static Plot</button> ";
-              html += "<button class='btn btn-custom' onclick='viewAnimation(\"" + source + "\")'>View Animation</button>";
-              html += "</div>";
-            });
-            $("#sourceButtons").html(html);
-            $("#sourceButtons").show();
-
-            // Optionally, show the mode selection card again.
-            $("#modeSelection").show();
+            // If record mode, build per-source button groups.
+            if (currentMode === 'record') {
+              var html = "";
+              selectedSources.forEach(function (source) {
+                html += "<div class='source-group' style='margin-bottom:15px;'>";
+                html += "<h5>" + source + "</h5>";
+                html += "<button class='btn btn-custom' onclick='downloadCSV(\"" + source + "\")'>Download CSV</button> ";
+                html += "<button class='btn btn-custom' onclick='viewStatic(\"" + source + "\")'>View Static Plot</button> ";
+                html += "<button class='btn btn-custom' onclick='viewAnimation(\"" + source + "\")'>View Animation</button>";
+                html += "</div>";
+              });
+              $("#sourceButtons").html(html);
+              $("#sourceButtons").show();
+              $("#modeSelection").show();
+            } else {
+              // For live mode, no additional UI is needed.
+              $("#modeSelection").show();
+            }
           },
           error: function (err) {
             console.error("Error stopping processing:", err);

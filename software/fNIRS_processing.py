@@ -88,7 +88,9 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         if external_stop_flag is not None:
             print("External stop flag is active; it can also stop logging when set.")
 
-        start_time = time.time()
+        # Flush any old data and set a reliable start time using time.monotonic()
+        ser.reset_input_buffer()
+        start_time = time.monotonic()
 
         try:
             while True:
@@ -100,8 +102,6 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                 # Check for Enter key press if enabled
                 if stop_on_enter and key_pressed():
                     key = get_key()
-                    # On Windows key is a byte; on Unix it is a string.
-                    # Check for carriage return and newline.
                     if key in [b'\r', '\r', b'\n', '\n']:
                         print("Enter key pressed, stopping logging...")
                         break
@@ -109,7 +109,8 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                 data = ser.read(64)
                 if len(data) == 64:
                     parsed_data = parse_packet(data)
-                    elapsed_time = round(time.time() - start_time, 3)
+                    # Calculate elapsed time using time.monotonic()
+                    elapsed_time = round(time.monotonic() - start_time, 3)
                     flat_row = [elapsed_time]
                     for i in range(8):
                         flat_row += parsed_data[i][1:5].tolist()
@@ -121,6 +122,7 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                     time.sleep(0.1)
         except Exception as e:
             print("An error occurred during logging:", str(e))
+
 
 def interleave_mode_blocks(df, mode_col="G0_Emitter"):
     # Create groups based on changes in the mode column
