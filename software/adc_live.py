@@ -101,9 +101,11 @@ class MainWindow(QtWidgets.QWidget):
                                  pg.mkPen('g', width=2),
                                  pg.mkPen('b', width=2)]
         for g in range(8):
-            p = self.plot_widget.addPlot(title=f"Group {g+1}")
+            p = self.plot_widget.addPlot()
+            p.setTitle(f"Group {g+1}", size="20pt")
             p.showGrid(x=True, y=True)
             p.setLabel('bottom', 'Timeframe')
+            p.setLabel('left', 'ADC Readings')
             p.setYRange(0, 4095, padding=0)
             p.disableAutoRange()
             group_curves = []

@@ -88,21 +88,20 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         if external_stop_flag is not None:
             print("External stop flag is active; it can also stop logging when set.")
 
-        # Flush any stale data and record both system and monotonic start times.
-        ser.reset_input_buffer()
-        start_monotonic = time.monotonic()
-        start_system = time.time()
+        start_time = time.time()
 
         try:
             while True:
-                # Check if the external stop flag is set.
+                # Check if the external stop flag is set
                 if external_stop_flag is not None and external_stop_flag.is_set():
                     print("External stop signal received, stopping logging...")
                     break
 
-                # Check for Enter key press if enabled.
+                # Check for Enter key press if enabled
                 if stop_on_enter and key_pressed():
                     key = get_key()
+                    # On Windows key is a byte; on Unix it is a string.
+                    # Check for carriage return and newline.
                     if key in [b'\r', '\r', b'\n', '\n']:
                         print("Enter key pressed, stopping logging...")
                         break
@@ -110,19 +109,13 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                 data = ser.read(64)
                 if len(data) == 64:
                     parsed_data = parse_packet(data)
-                    # Compute elapsed time using the monotonic clock.
-                    elapsed = time.monotonic() - start_monotonic
-                    # Use the system start time plus the elapsed time.
-                    timestamp = start_system + elapsed
-                    # Round timestamp to milliseconds.
-                    timestamp = round(timestamp, 3)
-                    
-                    flat_row = [timestamp]
+                    elapsed_time = round(time.time() - start_time, 3)
+                    flat_row = [elapsed_time]
                     for i in range(8):
                         flat_row += parsed_data[i][1:5].tolist()
                     writer.writerow(flat_row)
                     csvfile.flush()
-                    print(f"{timestamp}s - Logged frame to CSV.")
+                    print(f"{elapsed_time}s - Logged frame to CSV.")
                 else:
                     print("No valid data received from the serial port.")
                     time.sleep(0.1)
@@ -319,7 +312,14 @@ if __name__ == '__main__':
     capture_data(os.path.join(data_dir, "all_groups.csv"), stop_on_enter=True, external_stop_flag=stop_flag)
 
     # Read CSV file
-    df = pd.read_csv(os.path.join(data_dir, "all_groups.csv"))
+    csv_path = os.path.join(data_dir, "all_groups.csv")
+    df = pd.read_csv(csv_path)
+
+    # Overwrite the "Time (s)" column with increments of 0.001 seconds
+    df["Time (s)"] = [i * 0.001 for i in range(len(df))]
+
+    # Optionally, save the updated CSV back if needed
+    df.to_csv(csv_path, index=False)
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
