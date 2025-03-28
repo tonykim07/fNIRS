@@ -571,6 +571,7 @@ def update_graphs_route():
 
 @app.route('/select_group/<int:group_id>')
 def select_group(group_id):
+    global brain_mesh_fig
     brain_mesh_fig = highlight_sensor_group(brain_mesh_fig, group_id)
     return jsonify({'brain_mesh': brain_mesh_fig.to_json()})
 
