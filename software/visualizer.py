@@ -30,7 +30,7 @@ else:
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
-# ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=1) 
+ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01) 
 
 # -----------------------------------------------------
 # Flask and Socket.IO Setup
@@ -566,10 +566,10 @@ def update_control_data():
     global control_data
     data = request.json
     control_data.update(data)
-    logging.info(f"Control data updated: {control_data}")
+    print(f"Control data updated: {control_data}")
     values_list = list(control_data.values())
     data_bytes = bytes(values_list)
-    # ser.write(data_bytes)
+    ser.write(data_bytes)
     return jsonify({'status': 'success'})
 
 
@@ -584,13 +584,16 @@ def start_processing():
     if mode == 'live':
         current_mode = 'adc_live'
         # In demo mode, use the mock server.
-        if demo_mode:
-            proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
-        else:
-            proc1 = subprocess.Popen(['python', 'adc_server.py'])
-        time.sleep(1)  # allow server to initialize
-        proc2 = subprocess.Popen(['python', 'adc_client.py'])
-        running_processes.extend([proc1, proc2])
+        # if demo_mode:
+        #     proc1 = subprocess.Popen(['python', 'adc_mock_server.py'])
+        # else:
+        #     proc1 = subprocess.Popen(['python', 'adc_server.py'])
+        # time.sleep(1)  # allow server to initialize
+        # proc2 = subprocess.Popen(['python', 'adc_client.py'])
+        # running_processes.extend([proc1, proc2])
+        proc = subprocess.Popen(['python', 'adc_live.py'])
+        running_processes.append(proc)
+
         return jsonify({'status': 'ADC mode started'})
     
     # Record & visualize mode is available for both ADC and mBLL.
