@@ -640,7 +640,7 @@ def download_file(source):
 @app.route('/view_static/ADC')
 def view_static_adc_plotly():
     # Load CSV data from the "data" folder.
-    df = pd.read_csv('data/all_groups.csv')
+    df = pd.read_csv('all_groups.csv')
     
     # Build separate figures for each group.
     figures_html = ""
@@ -703,7 +703,7 @@ def view_static_adc_plotly():
 @app.route('/view_static/mBLL')
 def view_static_mbll_plotly():
     # Load CSV data from the "data" folder.
-    df = pd.read_csv('data/processed_output.csv')
+    df = pd.read_csv('processed_output.csv')
     
     # Build separate figures for each group.
     figures_html = ""

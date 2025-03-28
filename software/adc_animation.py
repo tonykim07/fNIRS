@@ -30,7 +30,7 @@ data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 # Load CSV data.
 # Expected CSV header:
 # Time (s),G0_Short,G0_Long1,G0_Long2,G0_Emitter,...,G7_Short,G7_Long1,G7_Long2,G7_Emitter
-df = pd.read_csv('data/all_groups.csv')
+df = pd.read_csv('all_groups.csv')
 n_rows = df.shape[0]
 
 # ------------------------------

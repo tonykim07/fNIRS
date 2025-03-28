@@ -10,8 +10,6 @@ import time
 import csv
 import pandas as pd
 import sys
-import os
-
 
 # Set up serial connection and use the appropriate keyboard functions based on platform
 if sys.platform.startswith('win'):
@@ -88,21 +86,20 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         if external_stop_flag is not None:
             print("External stop flag is active; it can also stop logging when set.")
 
-        # Flush any stale data and record both system and monotonic start times.
-        ser.reset_input_buffer()
-        start_monotonic = time.monotonic()
-        start_system = time.time()
+        start_time = time.time()
 
         try:
             while True:
-                # Check if the external stop flag is set.
+                # Check if the external stop flag is set
                 if external_stop_flag is not None and external_stop_flag.is_set():
                     print("External stop signal received, stopping logging...")
                     break
 
-                # Check for Enter key press if enabled.
+                # Check for Enter key press if enabled
                 if stop_on_enter and key_pressed():
                     key = get_key()
+                    # On Windows key is a byte; on Unix it is a string.
+                    # Check for carriage return and newline.
                     if key in [b'\r', '\r', b'\n', '\n']:
                         print("Enter key pressed, stopping logging...")
                         break
@@ -110,19 +107,13 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                 data = ser.read(64)
                 if len(data) == 64:
                     parsed_data = parse_packet(data)
-                    # Compute elapsed time using the monotonic clock.
-                    elapsed = time.monotonic() - start_monotonic
-                    # Use the system start time plus the elapsed time.
-                    timestamp = start_system + elapsed
-                    # Round timestamp to milliseconds.
-                    timestamp = round(timestamp, 3)
-                    
-                    flat_row = [timestamp]
+                    elapsed_time = round(time.time() - start_time, 3)
+                    flat_row = [elapsed_time]
                     for i in range(8):
                         flat_row += parsed_data[i][1:5].tolist()
                     writer.writerow(flat_row)
                     csvfile.flush()
-                    print(f"{timestamp}s - Logged frame to CSV.")
+                    print(f"{elapsed_time}s - Logged frame to CSV.")
                 else:
                     print("No valid data received from the serial port.")
                     time.sleep(0.1)
@@ -310,16 +301,12 @@ def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ex
 # ------------------ Main ------------------
 if __name__ == '__main__':
 
-    data_dir = os.path.join(os.path.dirname(__file__), 'data')
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-
     # Capture Data
     stop_flag=None # set to 1 from GUI to stop processing
-    capture_data(os.path.join(data_dir, "all_groups.csv"), stop_on_enter=True, external_stop_flag=stop_flag)
+    capture_data("all_groups.csv", stop_on_enter=True, external_stop_flag=stop_flag)
 
     # Read CSV file
-    df = pd.read_csv(os.path.join(data_dir, "all_groups.csv"))
+    df = pd.read_csv("all_groups.csv")
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
@@ -342,13 +329,12 @@ if __name__ == '__main__':
     final_df["Time (s)"] = final_df["Time (s)"].round(3)
 
     # 6) Write the final DataFrame to CSV
-    final_output = os.path.join(data_dir, "interleaved_output.csv")
-    final_df.to_csv(final_output, index=False)
-    
+    final_df.to_csv("interleaved_output.csv", index=False)
+
     # 7) Output the resulting DataFrame.
     print(final_df.head(20))
 
     # 8) Process collected data
-    input_csv = os.path.join(data_dir, "interleaved_output.csv")
-    output_csv = os.path.join(data_dir, "processed_output.csv")
+    input_csv = "interleaved_output.csv"  # Path to input CSV file
+    output_csv = "processed_output.csv" # Desired output CSV file name
     process_csv_dataset(input_csv, output_csv)
