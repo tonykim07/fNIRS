@@ -27,7 +27,7 @@ pg.setConfigOption('foreground', 'k')
 data = [[collections.deque(maxlen=5000) for _ in range(6)] for _ in range(8)]
 
 # Load CSV data.
-df = pd.read_csv('data/processed_output.csv')
+df = pd.read_csv('processed_output.csv')
 n_rows = df.shape[0]
 
 # ------------------------------
