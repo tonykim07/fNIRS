@@ -56,6 +56,8 @@ class MainWindow(QtWidgets.QWidget):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         self.setWindowTitle("ADC Live Mode")
+
+        self.max_len = 0
         
         # Main vertical layout
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -101,9 +103,11 @@ class MainWindow(QtWidgets.QWidget):
                                  pg.mkPen('g', width=2),
                                  pg.mkPen('b', width=2)]
         for g in range(8):
-            p = self.plot_widget.addPlot(title=f"Group {g+1}")
+            p = self.plot_widget.addPlot()
+            p.setTitle(f"Sensor Group {g+1}", size="16pt")  
             p.showGrid(x=True, y=True)
-            p.setLabel('bottom', 'Timeframe')
+            p.setLabel('bottom', 'Time (ms)')
+            p.setLabel('left', 'ADC Value')
             p.setYRange(0, 4095, padding=0)
             p.disableAutoRange()
             group_curves = []
@@ -137,7 +141,7 @@ class MainWindow(QtWidgets.QWidget):
                 if d:
                     self.curves[g][ch_idx].setData(range(len(d)), d)
             self.plots[g].setYRange(0, 4095, padding=0)
-    
+
     def reset_plots(self):
         self.data = [[[ ] for _ in range(3)] for _ in range(8)]
         for g in range(8):

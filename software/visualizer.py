@@ -27,7 +27,7 @@ if demo_mode:
     logging.info("Demo mode is active.")
 else:
     logging.info("Demo mode is not active.")
-    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01) 
+    ser = serial.Serial('/dev/tty.usbmodem205E386D47311', baudrate=9600, timeout=0.01) 
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
