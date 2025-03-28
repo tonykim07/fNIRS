@@ -88,18 +88,19 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         if external_stop_flag is not None:
             print("External stop flag is active; it can also stop logging when set.")
 
-        # Flush any old data and set a reliable start time using time.monotonic()
+        # Flush any stale data and record both system and monotonic start times.
         ser.reset_input_buffer()
-        start_time = time.monotonic()
+        start_monotonic = time.monotonic()
+        start_system = time.time()
 
         try:
             while True:
-                # Check if the external stop flag is set
+                # Check if the external stop flag is set.
                 if external_stop_flag is not None and external_stop_flag.is_set():
                     print("External stop signal received, stopping logging...")
                     break
 
-                # Check for Enter key press if enabled
+                # Check for Enter key press if enabled.
                 if stop_on_enter and key_pressed():
                     key = get_key()
                     if key in [b'\r', '\r', b'\n', '\n']:
@@ -109,20 +110,24 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                 data = ser.read(64)
                 if len(data) == 64:
                     parsed_data = parse_packet(data)
-                    # Calculate elapsed time using time.monotonic()
-                    elapsed_time = round(time.monotonic() - start_time, 3)
-                    flat_row = [elapsed_time]
+                    # Compute elapsed time using the monotonic clock.
+                    elapsed = time.monotonic() - start_monotonic
+                    # Use the system start time plus the elapsed time.
+                    timestamp = start_system + elapsed
+                    # Round timestamp to milliseconds.
+                    timestamp = round(timestamp, 3)
+                    
+                    flat_row = [timestamp]
                     for i in range(8):
                         flat_row += parsed_data[i][1:5].tolist()
                     writer.writerow(flat_row)
                     csvfile.flush()
-                    print(f"{elapsed_time}s - Logged frame to CSV.")
+                    print(f"{timestamp}s - Logged frame to CSV.")
                 else:
                     print("No valid data received from the serial port.")
                     time.sleep(0.1)
         except Exception as e:
             print("An error occurred during logging:", str(e))
-
 
 def interleave_mode_blocks(df, mode_col="G0_Emitter"):
     # Create groups based on changes in the mode column
