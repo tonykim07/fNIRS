@@ -3,37 +3,14 @@ import csv
 from tabulate import tabulate
 import nirsimple.preprocessing as nsp
 import nirsimple.processing as nproc
-import serial
 import struct
 import numpy as np
 import time
 import csv
 import pandas as pd
 import sys
+from visualizer import ser  # shared serial connection
 
-# Set up serial connection and use the appropriate keyboard functions based on platform
-if sys.platform.startswith('win'):
-    import msvcrt
-    ser = serial.Serial('COM7', 115200, timeout=1)
-    def key_pressed():
-        return msvcrt.kbhit()
-    def get_key():
-        return msvcrt.getch()
-else:
-    import select, termios, tty
-    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 115200, timeout=1)
-    def key_pressed():
-        dr, dw, de = select.select([sys.stdin], [], [], 0)
-        return bool(dr)
-    def get_key():
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
 
 def parse_packet(data):
     """ 
@@ -73,6 +50,13 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                           If provided and external_stop_flag.is_set() returns True,
                           the capture loop will stop.
     """
+    # Clear the stop flag by writing "0" at the start.
+    try:
+        with open("stop_flag.txt", "w") as f:
+            f.write("0")
+    except Exception as e:
+        print("Error initializing stop flag:", e)
+
     with open(csv_filename, mode='w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         header = ["Time (s)"]
@@ -83,26 +67,20 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         print("Starting raw ADC logging (seconds elapsed)...")
         if stop_on_enter:
             print("Press Enter to stop logging and proceed to CSV processing.")
-        if external_stop_flag is not None:
-            print("External stop flag is active; it can also stop logging when set.")
 
         start_time = time.time()
 
         try:
             while True:
-                # Check if the external stop flag is set
-                if external_stop_flag is not None and external_stop_flag.is_set():
-                    print("External stop signal received, stopping logging...")
-                    break
-
-                # Check for Enter key press if enabled
-                if stop_on_enter and key_pressed():
-                    key = get_key()
-                    # On Windows key is a byte; on Unix it is a string.
-                    # Check for carriage return and newline.
-                    if key in [b'\r', '\r', b'\n', '\n']:
-                        print("Enter key pressed, stopping logging...")
+                # Check the stop flag file.
+                try:
+                    with open("stop_flag.txt", "r") as flag_file:
+                        flag = flag_file.read().strip()
+                    if flag == "1":
+                        print("Stop flag detected. Stopping capture...")
                         break
+                except Exception as e:
+                    print("Error reading stop flag:", e)
 
                 data = ser.read(64)
                 if len(data) == 64:

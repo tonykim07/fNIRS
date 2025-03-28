@@ -27,7 +27,7 @@ if demo_mode:
     logging.info("Demo mode is active.")
 else:
     logging.info("Demo mode is not active.")
-    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01) 
+    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -614,11 +614,15 @@ def start_processing():
 
 @app.route('/stop_processing', methods=['POST'])
 def stop_processing():
-    global running_processes
-    for proc in running_processes:
-        proc.terminate()  # or proc.kill() if necessary
-    running_processes = []
-    return jsonify({'status': 'processing stopped'})
+    # Instead of killing the process, signal it by writing "1" to the stop flag file.
+    try:
+        with open("stop_flag.txt", "w") as f:
+            f.write("1")
+        logging.info("Stop flag set; fNIRS_processing.py should exit gracefully.")
+    except Exception as e:
+        logging.error(f"Error setting stop flag: {e}")
+    return jsonify({'status': 'stop flag set'})
+
 
 @app.route('/download/<source>')
 def download_file(source):
@@ -632,7 +636,7 @@ def download_file(source):
         return jsonify({'status': 'error', 'message': 'Invalid source.'}), 400
     # Retrieve the file name provided by the user, or default to the filename.
     download_name = request.args.get('filename', filename)
-    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    data_dir = os.path.dirname(os.path.abspath(__file__))
     
     return send_from_directory(data_dir, filename, as_attachment=True, download_name=download_name)
 
