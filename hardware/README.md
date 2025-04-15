@@ -5,7 +5,7 @@
 All schematic and PCB layouts are designed with Altium Designer. The table below summarizes the hardware projects within this folder.
 
 | Project  | Description |
-|----------|----------|----------|
+|----------|----------|
 | DetectorOptode    | Sensor PCB with only photodiode detection |
 | STLINK_Breakout    | Breakout PCB to be able to program STM32 Microcontrollers with any STLINK/STM32 NUCLEO |
 | SourceOptode    | Sensor PCB with only emitters |
