@@ -9,7 +9,7 @@ The firmware runs on the fNIRS ECU consisting of an STM32L476RET6 microcontrolle
    git clone https://github.com/tonykim07/fNIRS.git
    ```
 
-2. **Open STM32CubeIDE using the '/firmware/STM32/' as the workspace directory**
+2. **Open STM32CubeIDE using the `/firmware/STM32/` as the workspace directory**
 
 3. **Clean the project, then click Build to compile the project**
    
