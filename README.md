@@ -16,5 +16,3 @@ While conventional fNIRS systems are expensive, bulky, and limited to clinical e
 - Custom electrical control unit (ECU) built around a low-power STM32 microcontroller (STM32L476RET6) that interfaces with all sensor modules for synchronized control and data acquistion
 - Ergonomic mechanical design for secure, comfortable wear during extended sessions
 - Interactive Python-based GUI for live data visualization, serial communication, and module control
-
-## 2. How to navigate our Repo
