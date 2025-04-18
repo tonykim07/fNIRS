@@ -676,8 +676,10 @@ def download_file(source):
 
 @app.route('/view_static/ADC')
 def view_static_adc_plotly():
-    # Load CSV data from the "data" folder.
-    df = pd.read_csv('all_groups.csv')
+    # Load CSV data.
+    data_dir = 'sample_data' if demo_mode else 'data'
+    csv_path = os.path.join(data_dir, 'all_groups.csv')
+    df = pd.read_csv(csv_path)
     
     # Build separate figures for each group.
     figures_html = ""
@@ -739,8 +741,10 @@ def view_static_adc_plotly():
 
 @app.route('/view_static/mBLL')
 def view_static_mbll_plotly():
-    # Load CSV data from the "data" folder.
-    df = pd.read_csv('processed_output.csv')
+    # Load CSV data
+    data_dir = 'sample_data' if demo_mode else 'data'
+    csv_path = os.path.join(data_dir, 'processed_output.csv')
+    df = pd.read_csv(csv_path)
     
     # Build separate figures for each group.
     figures_html = ""
@@ -821,12 +825,19 @@ def view_static_mbll_plotly():
 
 @app.route('/view_animation/ADC')
 def view_animation_adc():
-    subprocess.Popen([sys.executable, 'adc_animation.py'])
+    args = [sys.executable, 'adc_animation.py']
+    if demo_mode:
+        args.append('demo')
+    subprocess.Popen(args)
     return ('', 204)
 
 @app.route('/view_animation/mBLL')
 def view_animation_mbll():
     subprocess.Popen([sys.executable, 'mBLL_animation.py'])
+    args = [sys.executable, 'mBLL_animation.py']
+    if demo_mode:
+        args.append('demo')
+    subprocess.Popen(args)
     return ('', 204)
 
 # -----------------------------------------------------
