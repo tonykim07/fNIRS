@@ -1,4 +1,4 @@
-# fNIRS
+# A Wearable Functional Near-Infrared Spectroscopy (fNIRS) based Brain Interface
 
 **Project Overview**
 
