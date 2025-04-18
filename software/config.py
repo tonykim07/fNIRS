@@ -1,5 +1,5 @@
 # Path to your USB‑serial device
-SERIAL_PORT = '/dev/tty.usbmodem205D388A47311'
+SERIAL_PORT = '/dev/tty.usbmodem205E386D47311'
 
 # Serial settings
 BAUD_RATE = 9600
