@@ -1,6 +1,9 @@
 # A Wearable Functional Near-Infrared Spectroscopy (fNIRS) based Brain Interface
 
-<img src="https://github.com/user-attachments/assets/65a19ef1-c1dc-497d-811f-7cd12f50e027" alt="Device Overview" width="400"/>
+<img src="https://github.com/user-attachments/assets/e845183c-7722-4132-92f5-48b59a016dfe" alt="Device Overview" width="400"/>
+
+
+
 
 ## Project Overview
 
