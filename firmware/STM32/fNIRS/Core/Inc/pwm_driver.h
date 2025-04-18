@@ -7,7 +7,7 @@
 #include "stdbool.h"
 
 /* DEFINES */
-#define DEBUG_PWM_DRIVER (1U)
+#define DEBUG_PWM_DRIVER (0U)
 
 /* DATA STRUCTURES */
 typedef enum
