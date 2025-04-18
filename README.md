@@ -1,5 +1,7 @@
 # A Wearable Functional Near-Infrared Spectroscopy (fNIRS) based Brain Interface
 
+![Device Overview](https://github.com/user-attachments/assets/65a19ef1-c1dc-497d-811f-7cd12f50e027)
+
 **Project Overview**
 
 This project introduces a low-cost, ergonomic functional Near-Infrared Spectroscopy (fNIRS) device designed for real-time brain activity monitoring. fNIRS is a non-invasive technique that uses near-infrared light to measure changes in blood oxygenation, providing insights into neural activity based on the modified Beer-Lambert Law.
