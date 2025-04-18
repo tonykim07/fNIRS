@@ -1,28 +1,34 @@
+"""
+adc_animation.py
+==================
+This script visualizes ADC data in real-time using PyQtGraph.
+It reads data from a CSV file and displays it in a GUI with multiple subplots.
+"""
+
 #!/usr/bin/env python
 import sys
 import os
-import pandas as pd
 import collections
 import signal
+import pandas as pd
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
 
 # ------------------------------
 # Determine data folder
 # ------------------------------
-demo = any(arg.lower() == 'demo' for arg in sys.argv[1:])
-data_dir = 'sample_data' if demo else '.'
-csv_path = os.path.join(data_dir, 'all_groups.csv')
+DEMO = any(arg.lower() == 'demo' for arg in sys.argv[1:])
+DATA_DIR = 'sample_data' if DEMO else '.'
+CSV_PATH = os.path.join(DATA_DIR, 'all_groups.csv')
 
-# ------------------------------
-# Graceful Exit Handler
-# ------------------------------
-def signal_handler(sig, frame):
+def signal_handler():
+    """
+    Graceful Exit Handler
+    """
     print("Exiting gracefully...")
     app.quit()
 
 # Register SIGINT handler (Ctrl+C)
-import signal
 signal.signal(signal.SIGINT, signal_handler)
 
 # ------------------------------
@@ -38,7 +44,7 @@ data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 # Load CSV data.
 # Expected CSV header:
 # Time (s),G0_Short,G0_Long1,G0_Long2,G0_Emitter,...,G7_Short,G7_Long1,G7_Long2,G7_Emitter
-df = pd.read_csv(csv_path)
+df = pd.read_csv(CSV_PATH)
 n_rows = df.shape[0]
 
 # ------------------------------
@@ -94,12 +100,16 @@ main_layout.addWidget(win)
 # ------------------------------
 # Streaming Simulation from CSV
 # ------------------------------
-current_index = 0
+CURRENT_INDEX = 0
 
 def update():
-    global current_index
-    if current_index < n_rows:
-        row = df.iloc[current_index]
+    """
+    Update function to read the next row from the CSV file
+    and update the plots.
+    """
+    global CURRENT_INDEX
+    if CURRENT_INDEX < n_rows:
+        row = df.iloc[CURRENT_INDEX]
         # For each group, extract Short, Long1, Long2 (ignore Emitter)
         for i in range(8):
             group_values = [
@@ -109,12 +119,11 @@ def update():
             ]
             for trace in range(3):
                 data[i][trace].append(group_values[trace])
-        current_index += 1
+        CURRENT_INDEX += 1
 
         # Update each subplot.
         for i in range(8):
             for trace in range(3):
-                # x-axis is taken from the "Time (s)" column for the number of points rendered so far.
                 x = list(df["Time (s)"].iloc[:len(data[i][trace])])
                 curves[i][trace].setData(x, list(data[i][trace]))
     else:

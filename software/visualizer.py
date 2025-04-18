@@ -1,24 +1,36 @@
-import eventlet
-import serial
-eventlet.monkey_patch()
+"""
+visualizer.py
+==================
+This script visualizes fNIRS data in real-time using Flask and Plotly.
+It connects to an upstream server for data and allows for interaction
+through a web interface.
+It also provides a demo mode for testing without actual data.
+The script includes functions for creating a 3D brain mesh, processing
+activation data, and updating the visualization.
+"""
 
 import sys
 import signal
 import time
+import os
 import logging
 import subprocess
-import os
+import threading
+from queue import Queue
+
+import serial
 from flask import Flask, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
 from plotly.offline import plot
 import numpy as np
 import nibabel as nib
-import threading
-from queue import Queue
 from scipy.spatial import cKDTree
 import socketio as sio_client_lib
 import pandas as pd
+
+import eventlet
+eventlet.monkey_patch()
 import config
 
 # Check command-line arguments for a demo flag.
@@ -56,10 +68,16 @@ sio_client = sio_client_lib.Client()
 
 @sio_client.event
 def connect():
+    """
+    Called when the client connects to the upstream server.
+    """
     logging.info("Connected to upstream server for data.")
 
 @sio_client.event
 def disconnect():
+    """
+    Called when the client disconnects from the upstream server.
+    """
     logging.info("Disconnected from upstream server.")
 
 @sio_client.event
@@ -73,31 +91,35 @@ def processed_data(data):
         if data_queue.full():
             data_queue.get()  # remove oldest if full
         data_queue.put(activation_data)
-    
+
     # Immediately update the graph if in mBLL mode.
     if current_mode == 'mBLL':
         update_graphs(activation_data)
 
 def get_most_recent_packet():
+    """
+    Get the most recent packet from the data queue.
+    """
     with data_lock:
         if not data_queue.empty():
             return list(data_queue.queue)[-1]
     return None
 
-# Signal handler to exit the application gracefully.
-def signal_handler(sig, frame):
+def signal_handler():
+    """
+    Graceful Exit Handler
+    """
     print("Exiting gracefully...")
     if sio_client.connected:
         sio_client.disconnect()
     app.quit()
-    
+
 # Register the signal handler for SIGINT.
 signal.signal(signal.SIGINT, signal_handler)
 
 # -----------------------------------------------------
 # fNIRS Data Processing and Brain Mesh Functions
 # -----------------------------------------------------
-
 def compute_vertex_normals(vertices, triangles):
     """Compute an approximate normal for each vertex in the mesh."""
     normals = np.zeros(vertices.shape, dtype=float)
@@ -119,31 +141,35 @@ def create_flat_cylinder_mesh(center, normal, radius, height=1.0, resolution=20,
     Create vertices and faces for a flat cylinder (like a bottle cap) centered at origin,
     oriented along the z-axis, then rotated to align with the given normal and translated to center.
     
-    The parameter `angle` rotates the circle by that offset (in radians) before aligning with the normal.
+    `angle` rotates the circle by that offset (in radians) before aligning with normal.
     """
     theta = np.linspace(0, 2*np.pi, resolution, endpoint=False) + angle
-    circle_bottom = np.column_stack((radius * np.cos(theta), radius * np.sin(theta), np.zeros(resolution)))
-    circle_top = np.column_stack((radius * np.cos(theta), radius * np.sin(theta), np.full(resolution, height)))
+    circle_bottom = np.column_stack((radius * np.cos(theta),
+                                     radius * np.sin(theta),
+                                     np.zeros(resolution)))
+    circle_top = np.column_stack((radius * np.cos(theta),
+                                  radius * np.sin(theta),
+                                  np.full(resolution, height)))
     vertices = np.vstack((circle_bottom, circle_top))
-    
+
     faces = []
     for i in range(resolution):
         next_i = (i + 1) % resolution
         faces.append([i, next_i, i + resolution])
         faces.append([next_i, next_i + resolution, i + resolution])
-    
+
     bottom_center_index = len(vertices)
     vertices = np.vstack((vertices, np.array([0, 0, 0])))
     for i in range(resolution):
         next_i = (i+1) % resolution
         faces.append([bottom_center_index, next_i, i])
-    
+
     top_center_index = len(vertices)
     vertices = np.vstack((vertices, np.array([0, 0, height])))
     for i in range(resolution):
         next_i = (i+1) % resolution
         faces.append([top_center_index, i+resolution, next_i+resolution])
-    
+
     def rotation_matrix_from_vectors(a, b):
         a = a / np.linalg.norm(a)
         b = b / np.linalg.norm(b)
@@ -200,25 +226,25 @@ def initialize_sensor_positions(coords):
     detector_positions = np.array([
         [-38.0, 54.0, 18.0],    # Group 1
         [-65.0, -29.0, 33.0],
-        
+
         [-43.0, -5.0, 58.0],    # Group 2
         [-51.0, -69.0, 29.0],
-        
+
         [15.0, 28.0, 60.0],     # Group 3
         [-15.0, 28.0, 60.0],
-        
+
         [20.0, -95.0, 30.0],    # Group 4
         [-20.0, -95.0, 30.0],
-        
+
         [14.0, -43.0, 80.0],    # Group 5
         [-15.0, -41.0, 78.0],
-        
+
         [15.0, 70.0, -3.0],     # Group 6
         [-15.0, 70.0, -3.0],
 
         [50.0, -74.0, 21.0],    # Group 7
         [66.0, -22.0, 38.0],
-        
+
         [41.0, -13.0, 66.0],    # Group 8
         [43.0, 50.0, 22.0],
     ])
@@ -230,11 +256,14 @@ def map_points_to_regions(points, affine, aal_data):
     """
     Map sensor positions to brain regions.
     """
-    voxel_coords = np.round(np.linalg.inv(affine) @ np.column_stack((points, np.ones(points.shape[0]))).T).T[:, :3]
+    voxel_coords = np.round(np.linalg.inv(affine) @
+                            np.column_stack((points, np.ones(points.shape[0]))).T).T[:, :3]
     voxel_coords = voxel_coords.astype(int)
     regions = []
     for voxel in voxel_coords:
-        if (0 <= voxel[0] < aal_data.shape[0] and 0 <= voxel[1] < aal_data.shape[1] and 0 <= voxel[2] < aal_data.shape[2]):
+        if (0 <= voxel[0] < aal_data.shape[0] and
+            0 <= voxel[1] < aal_data.shape[1] and
+            0 <= voxel[2] < aal_data.shape[2]):
             regions.append(aal_data[tuple(voxel)])
         else:
             regions.append(-1)
@@ -248,7 +277,7 @@ def filter_coordinates_to_surface(coords, surface_coords, threshold=2.0):
     distances, _ = tree.query(coords)
     return coords[distances <= threshold]
 
-def create_static_brain_mesh(emitter_states):
+def create_static_brain_mesh():
     """
     Create a static 3D brain mesh with sensor nodes.
     Emitters are rendered as flat cylindrical caps (default white) and detectors as markers (black).
@@ -275,7 +304,12 @@ def create_static_brain_mesh(emitter_states):
     _, emitter_indices = tree.query(emitter_positions)
     emitter_normals = vertex_normals[emitter_indices]
     for pos, angle, norm in zip(emitter_positions, emitter_angles, emitter_normals):
-        vertices_cap, faces_cap = create_flat_cylinder_mesh(pos, norm, radius=10, height=2, resolution=20, angle=angle)
+        vertices_cap, faces_cap = create_flat_cylinder_mesh(pos,
+                                                            norm,
+                                                            radius=10,
+                                                            height=2,
+                                                            resolution=20,
+                                                            angle=angle)
         faces_cap = np.array(faces_cap)
         i_cap, j_cap, k_cap = faces_cap[:, 0], faces_cap[:, 1], faces_cap[:, 2]
         fig.add_trace(go.Mesh3d(
@@ -292,7 +326,12 @@ def create_static_brain_mesh(emitter_states):
     _, detector_indices = tree.query(detector_positions)
     detector_normals = vertex_normals[detector_indices]
     for pos, angle, norm in zip(detector_positions, detector_angles, detector_normals):
-        vertices_cap, faces_cap = create_flat_cylinder_mesh(pos, norm, radius=10, height=2, resolution=20, angle=angle)
+        vertices_cap, faces_cap = create_flat_cylinder_mesh(pos,
+                                                            norm,
+                                                            radius=10,
+                                                            height=2,
+                                                            resolution=20,
+                                                            angle=angle)
         faces_cap = np.array(faces_cap)
         i_cap, j_cap, k_cap = faces_cap[:, 0], faces_cap[:, 1], faces_cap[:, 2]
         fig.add_trace(go.Mesh3d(
@@ -321,10 +360,10 @@ def create_static_brain_mesh(emitter_states):
 
 # Preload data.
 coords, x, y, z, i, j, k, aal_data, affine = preload_static_data()
-emitter_positions, emitter_angles, detector_positions, detector_angles = initialize_sensor_positions(coords)
+emitter_positions, emitter_angles, detector_positions,detector_angles = initialize_sensor_positions(coords)
 combined_positions = np.vstack((emitter_positions, detector_positions))
 regions = map_points_to_regions(combined_positions, affine, aal_data)
-brain_mesh_fig = create_static_brain_mesh([True]*8)
+brain_mesh_fig = create_static_brain_mesh()
 emitter_states = [True] * len(emitter_positions)
 
 # Global variable to store accumulated activation data
@@ -356,7 +395,7 @@ sensor_groups = [
     {"group_id": 8, "emitter_index": 7, "detector_indices": [14, 15]},
 ]
 
-# Define a mapping: for each hbo sensor (0-23) give its corresponding index in combined_positions (0-23)
+# Define a mapping: for each hbo sensor (0-23)
 sensor_mapping = [
     0, 8, 9,    # Group 1: emitter0, detector0, detector1
     1, 10, 11,  # Group 2: emitter1, detector2, detector3
@@ -391,7 +430,9 @@ for reg in unique_sensor_regions:
     region_mask = aal_data == reg
     region_voxels = np.argwhere(region_mask)
     region_world_coords = nib.affines.apply_affine(affine, region_voxels)
-    filtered_coords = filter_coordinates_to_surface(region_world_coords, surface_coords, threshold=2.0)
+    filtered_coords = filter_coordinates_to_surface(region_world_coords,
+                                                    surface_coords,
+                                                    threshold=2.0)
     region_filtered[reg] = filtered_coords
 
 
@@ -410,7 +451,7 @@ def update_highlighted_regions(fig, hbo_values):
         if value < 0 and sensor_region[i] > 0:
             highlighted_region_ids.append(sensor_region[i])
     highlighted_region_ids = np.unique(highlighted_region_ids)
-    
+
     highlighted_coords = []
     highlighted_values = []
     for reg in highlighted_region_ids:
@@ -424,7 +465,7 @@ def update_highlighted_regions(fig, hbo_values):
                 avg_val = 0
             highlighted_coords.append(filtered_coords)
             highlighted_values.extend([avg_val] * len(filtered_coords))
-    
+
     if highlighted_coords:
         highlighted_coords = np.vstack(highlighted_coords)
         highlighted_values = np.array(highlighted_values)
@@ -499,15 +540,12 @@ def highlight_sensor_group(fig, group_id):
     return fig
 
 
-# -----------------------------------------------------
-# Graph Update Function (called when new data arrives)
-# -----------------------------------------------------
-# INFO:root:update_highlighted_regions took 1.4346 seconds, which is 99.94% of update_graphs
 def update_graphs(latest_packet):
+    """
+    Update the brain mesh with new data from the latest packet.
+    This function is called when new data is received from the upstream server.
+    """
     global brain_mesh_fig
-    total_start = time.perf_counter()  # start of the function
-    # logging.info(f"Updating brain mesh with new data: {latest_packet}")
-    
     if latest_packet is None:
         return
 
@@ -517,33 +555,27 @@ def update_graphs(latest_packet):
         activation_data = activation_data.reshape(-1, 1)
     hbo_values = activation_data[::2]  # Now an array of 24 values
 
-    # Measure the time taken by update_highlighted_regions
-    update_start = time.perf_counter()
     brain_mesh_fig = update_highlighted_regions(brain_mesh_fig, hbo_values)
-    update_end = time.perf_counter()
-
-    total_end = time.perf_counter()
-    
-    overall_time = total_end - total_start
-    update_time = update_end - update_start
-    percentage = (update_time / overall_time) * 100 if overall_time else 0
-
-    # logging.info(f"update_highlighted_regions took {update_time:.4f} seconds, which is {percentage:.2f}% of update_graphs")
-    
     socketio.emit('brain_mesh_update', {
         'brain_mesh': brain_mesh_fig.to_json()
     })
 
 
 def stop_serial_reader():
+    """
+    Stop the serial reader thread gracefully.
+    """
     global ser
     try:
         ser.close()
         logging.info("Serial connection closed for record mode.")
     except Exception as e:
         logging.error(f"Error closing serial port: {e}")
-        
+
 def reinit_serial_connection():
+    """
+    Reinitialize the serial connection.
+    """
     global ser
     try:
         ser = serial.Serial(
@@ -555,27 +587,41 @@ def reinit_serial_connection():
     except Exception as e:
         logging.error(f"Error reinitializing serial port: {e}")
 
-    
+
 # -------------------- Flask Routes --------------------
 
 @app.route('/')
 def index():
+    """
+    Serve the main HTML page.
+    This page contains the Plotly graph and other UI elements.
+    """
     return send_from_directory('.', 'index.html')
 
 @app.route('/update_graphs')
 def update_graphs_route():
+    """
+    Update the brain mesh with new data from the latest packet.
+    This function is called when new data is received from the upstream server.
+    """
     return jsonify({
         'brain_mesh': brain_mesh_fig.to_json(),
     })
 
 @app.route('/select_group/<int:group_id>')
 def select_group(group_id):
+    """
+    Highlight a specific sensor group on the brain mesh.
+    """
     global brain_mesh_fig
     brain_mesh_fig = highlight_sensor_group(brain_mesh_fig, group_id)
     return jsonify({'brain_mesh': brain_mesh_fig.to_json()})
 
 @app.route('/update_emitter_states', methods=['POST'])
 def update_emitter_states():
+    """
+    Update emitter states based on the received JSON data.
+    """
     global emitter_states
     data = request.json
     emitter_states = data['emitter_states']
@@ -583,6 +629,12 @@ def update_emitter_states():
 
 @app.route('/update_control_data', methods=['POST'])
 def update_control_data():
+    """
+    Update control data for the emitter and mux.
+    This function receives a JSON object with control data and updates the
+    global control_data dictionary. It also sends the updated data to the serial
+    port if not in demo mode.
+    """
     global control_data
     data = request.json
     control_data.update(data)
@@ -595,11 +647,14 @@ def update_control_data():
 
 @app.route('/start_processing', methods=['POST'])
 def start_processing():
+    """
+    Start the processing based on the selected mode.
+    """
     global processing_proc, current_mode, current_sources
     data = request.get_json()
     mode = data.get('mode')      # "live" or "record"
     current_sources = data.get('sources', [])
-    
+
     # Live readings mode is available for ADC only.
     if mode == 'live':
         current_mode = 'adc_live'
@@ -614,29 +669,32 @@ def start_processing():
             proc = subprocess.Popen(['python', 'adc_live.py'])
             running_processes.append(proc)
         return jsonify({'status': 'ADC mode started'})
-    
+
     # Record & visualize mode is available for both ADC and mBLL.
-    elif mode == 'record':
+    if mode == 'record':
         current_mode = 'record'
         # In demo mode, skip starting fNIRS_processing.py.
         if demo_mode:
             return jsonify({'status': 'demo mode active, processing skipped'})
-        else:
-            try:
-                # Stop the visualizer's serial reading
-                stop_serial_reader()
-                # Now launch fnirs_processing.py which creates its own serial connection.
-                proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
-                running_processes.extend([proc])
-                return jsonify({'status': 'processing started'})
-            except Exception as e:
-                return jsonify({'status': 'error', 'message': str(e)}), 500
+        try:
+            # Stop the visualizer's serial reading
+            stop_serial_reader()
+            # Now launch fnirs_processing.py which creates its own serial connection.
+            proc = subprocess.Popen(['python', 'fNIRS_processing.py'])
+            running_processes.extend([proc])
+            return jsonify({'status': 'processing started'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
     else:
         return jsonify({'status': 'error', 'message': 'Invalid mode selected.'}), 400
 
 
 @app.route('/stop_processing', methods=['POST'])
 def stop_processing():
+    """
+    Stop the processing and reinitialize the serial connection.
+    This function sends a SIGUSR1 signal to the subprocesses to stop them gracefully.
+    """
     global running_processes
     # Send SIGUSR1 to each subprocess so that they stop gracefully.
     for proc in running_processes:
@@ -651,12 +709,16 @@ def stop_processing():
         else:
             logging.info("Serial connection is already open; no need to reinitialize.")
     except Exception as e:
-        logging.error(f"Error checking serial connection: {e}")    
+        logging.error(f"Error checking serial connection: {e}")
     return jsonify({'status': 'processing stop signal sent and serial reinitialized'})
 
 
 @app.route('/download/<source>')
 def download_file(source):
+    """
+    Download a CSV file based on the source parameter.
+    The source can be 'ADC' or 'mBLL'.
+    """
     # Map each source to its CSV file name (adjust as needed)
     csv_map = {
         'ADC': 'all_groups.csv',
@@ -668,17 +730,21 @@ def download_file(source):
     # Retrieve the file name provided by the user, or default to the filename.
     download_name = request.args.get('filename', filename)
     data_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
     return send_from_directory(data_dir, filename, as_attachment=True, download_name=download_name)
 
 
 @app.route('/view_static/ADC')
 def view_static_adc_plotly():
+    """
+    Generate static HTML for ADC data visualization.
+    This function creates a Plotly figure for each group and returns the HTML.
+    """
     # Load CSV data.
     data_dir = 'sample_data' if demo_mode else 'data'
     csv_path = os.path.join(data_dir, 'all_groups.csv')
     df = pd.read_csv(csv_path)
-    
+
     # Build separate figures for each group.
     figures_html = ""
     for i in range(8):
@@ -701,7 +767,7 @@ def view_static_adc_plotly():
             mode = 'lines',
             name = 'Long2'
         ))
-        
+
         fig.update_layout(
             title = f"Group {i+1}",
             xaxis_title = "Time (s)",
@@ -709,11 +775,15 @@ def view_static_adc_plotly():
             autosize=True,
             margin=dict(l=50, r=50, t=50, b=50)
         )
-        
+
         # Generate an HTML div for this figure without including Plotly.js again.
-        div = plot(fig, output_type='div', include_plotlyjs=False, config={'displayModeBar': True, 'responsive': True})
+        div = plot(fig,
+                   output_type='div',
+                   include_plotlyjs=False,
+                   config={'displayModeBar': True,
+                           'responsive': True})
         figures_html += f"<div style='margin-bottom:50px;'>{div}</div>"
-    
+
     # Include Plotly.js only once in the head.
     html = f"""
     <html>
@@ -739,11 +809,15 @@ def view_static_adc_plotly():
 
 @app.route('/view_static/mBLL')
 def view_static_mbll_plotly():
+    """
+    Load and visualize mBLL data from CSV file.
+    This function generates a static HTML page with Plotly figures.
+    """
     # Load CSV data
     data_dir = 'sample_data' if demo_mode else 'data'
     csv_path = os.path.join(data_dir, 'processed_output.csv')
     df = pd.read_csv(csv_path)
-    
+
     # Build separate figures for each group.
     figures_html = ""
     for i in range(1, 9):
@@ -784,7 +858,7 @@ def view_static_mbll_plotly():
             mode = 'lines',
             name = 'D3_hbr'
         ))
-        
+
         fig.update_layout(
             title = f"Group {i+1}",
             xaxis_title = "Time (s)",
@@ -792,11 +866,14 @@ def view_static_mbll_plotly():
             autosize=True,
             margin=dict(l=50, r=50, t=50, b=50)
         )
-        
+
         # Generate an HTML div for this figure without including Plotly.js again.
-        div = plot(fig, output_type='div', include_plotlyjs=False, config={'displayModeBar': True, 'responsive': True})
+        div = plot(fig,
+                   output_type='div',
+                   include_plotlyjs=False,
+                   config={'displayModeBar': True, 'responsive': True})
         figures_html += f"<div style='margin-bottom:50px;'>{div}</div>"
-    
+
     # Include Plotly.js only once in the head.
     html = f"""
     <html>
@@ -823,6 +900,9 @@ def view_static_mbll_plotly():
 
 @app.route('/view_animation/ADC')
 def view_animation_adc():
+    """
+    Launch the ADC animation script in a separate process.
+    """
     args = [sys.executable, 'adc_animation.py']
     if demo_mode:
         args.append('demo')
@@ -831,6 +911,9 @@ def view_animation_adc():
 
 @app.route('/view_animation/mBLL')
 def view_animation_mbll():
+    """
+    Launch the mBLL animation script in a separate process.
+    """
     subprocess.Popen([sys.executable, 'mBLL_animation.py'])
     args = [sys.executable, 'mBLL_animation.py']
     if demo_mode:
@@ -842,6 +925,9 @@ def view_animation_mbll():
 # Start the Upstream Client in a Background Thread
 # -----------------------------------------------------
 def run_socketio_client():
+    """
+    Run the Socket.IO client in a separate thread.
+    """
     connected = False
     while not connected:
         try:

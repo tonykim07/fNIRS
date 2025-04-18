@@ -1,25 +1,36 @@
-import numpy as np
+"""
+fNIRS_processing.py
+==================
+This script captures raw ADC data from a serial port, processes it, and
+outputs the results to a CSV file. It includes functions for parsing packets,
+capturing data, interleaving mode blocks, and applying the Modified 
+Beer-Lambert Law on the dataset to compute hemoglobin concentration changes.
+"""
+
 import csv
+import time
+import signal
+import struct
+import numpy as np
 from tabulate import tabulate
 import nirsimple.preprocessing as nsp
 import nirsimple.processing as nproc
-import struct
-import numpy as np
-import time
-import csv
 import pandas as pd
-import signal
 import serial
 from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
 
 ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
 
-stop_flag = False  # Global flag for stopping the capture loop
+STOP_FLAG = False  # Global flag for stopping the capture loop
 
-def handle_stop_signal(signum, frame):
-    global stop_flag
+def handle_stop_signal():
+    """
+    Signal handler for SIGUSR1 to set the STOP_FLAG.
+    This allows the capture loop to stop gracefully.
+    """
+    global STOP_FLAG
     print("Received stop signal, setting stop_flag to True.")
-    stop_flag = True
+    STOP_FLAG = True
 
 # Register the handler for SIGUSR1
 signal.signal(signal.SIGUSR1, handle_stop_signal)
@@ -29,17 +40,17 @@ def parse_packet(data):
     Parses 64 raw bytes into an 8×5 array of sensor data:
        [Group ID, Short, Long1, Long2, Emitter Status].
     """
-    NOISE_LEVEL = 2050
+    noise_level = 2050
     parsed_data = np.zeros((8, 5), dtype=int)
     for i in range(8):
         offset = i * 8
         packet_identifier = data[offset]
         sensor_channel_1 = struct.unpack('>H', data[offset+1:offset+3])[0]
-        sensor_channel_inv1 = 2 * NOISE_LEVEL - sensor_channel_1
+        sensor_channel_inv1 = 2 * noise_level - sensor_channel_1
         sensor_channel_2 = struct.unpack('>H', data[offset+3:offset+5])[0]
-        sensor_channel_inv2 = 2 * NOISE_LEVEL - sensor_channel_2
+        sensor_channel_inv2 = 2 * noise_level - sensor_channel_2
         sensor_channel_3 = struct.unpack('>H', data[offset+5:offset+7])[0]
-        sensor_channel_inv3 = 2 * NOISE_LEVEL - sensor_channel_3
+        sensor_channel_inv3 = 2 * noise_level - sensor_channel_3
         emitter_status    = data[offset+7]
 
         parsed_data[i] = [
@@ -51,7 +62,7 @@ def parse_packet(data):
         ]
     return parsed_data
 
-def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
+def capture_data(csv_filename, stop_on_enter=True):
     """
     Captures ADC data and writes it to a CSV file.
     
@@ -62,9 +73,9 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
                           If provided and external_stop_flag.is_set() returns True,
                           the capture loop will stop.
     """
-    global stop_flag
-    stop_flag = False  # Reset the flag at the start
-    
+    global STOP_FLAG
+    STOP_FLAG = False  # Reset the flag at the start
+
     with open(csv_filename, mode='w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         header = ["Time (s)"]
@@ -80,7 +91,7 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
 
         try:
             while True:
-                if stop_flag:
+                if STOP_FLAG:
                     print("Stop flag detected. Stopping capture...")
                     break
                 data = ser.read(64)
@@ -99,7 +110,15 @@ def capture_data(csv_filename, stop_on_enter=True, external_stop_flag=None):
         except Exception as e:
             print("An error occurred during logging:", str(e))
 
+
 def interleave_mode_blocks(df, mode_col="G0_Emitter"):
+    """
+    Interleaves blocks of data based on the mode column.
+    The function assumes that the DataFrame has a column named mode_col
+    that indicates the mode (1 or 2) for each row.
+    It creates a new DataFrame where each block of mode 1 rows is interleaved
+    with the following block of mode 2 rows.
+    """
     # Create groups based on changes in the mode column
     df["group"] = (df[mode_col] != df[mode_col].shift()).cumsum()
 
@@ -191,12 +210,20 @@ def combine_two_rows(row_mode1, row_mode2):
         sample[base + 5] = long2_940
     return sample
 
-def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ext_coeff_table='wray'):
+def process_csv_dataset(
+    input_csv,
+    output_csv,
+    age=22,
+    sd_distance=5.0,
+    molar_ext_coeff_table='wray'
+):
     """
     Processes an fNIRS CSV dataset for post-processing.
 
     The CSV is expected to have a header and then rows with columns:
-      Time, G0_Short, G0_Long1, G0_Long2, G0_Emitter, G1_Short, G1_Long1, G1_Long2, G1_Emitter, ..., G7_Short, G7_Long1, G7_Long2, G7_Emitter.
+      Time, G0_Short, G0_Long1, G0_Long2, G0_Emitter, 
+      G1_Short, G1_Long1, G1_Long2, G1_Emitter, ..., 
+      G7_Short, G7_Long1, G7_Long2, G7_Emitter.
 
     Rows alternate between mode 1 (660 nm) and mode 2 (940 nm). The function
     pairs each mode 1 row with the following mode 2 row, applies the OD conversion,
@@ -209,7 +236,6 @@ def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ex
     # Load CSV data (skip header)
     with open(input_csv, 'r') as f:
         reader = csv.reader(f)
-        header = next(reader)
         data_lines = list(reader)
 
     # Convert rows to float arrays
@@ -281,8 +307,8 @@ def process_csv_dataset(input_csv, output_csv, age=22, sd_distance=5.0, molar_ex
 if __name__ == '__main__':
 
     # Capture Data
-    stop_flag=None # set to 1 from GUI to stop processing
-    capture_data("all_groups.csv", stop_on_enter=True, external_stop_flag=stop_flag)
+    STOP_FLAG=None # set to 1 from GUI to stop processing
+    capture_data("all_groups.csv", stop_on_enter=True)
 
     # Read CSV file
     df = pd.read_csv("all_groups.csv")
@@ -301,8 +327,8 @@ if __name__ == '__main__':
     final_df = interleave_mode_blocks(df, mode_col="G0_Emitter")
 
     # 4) Assign new timestamps at a fixed increment (0.001 s in this example)
-    increment = 0.001
-    final_df.insert(0, "Time (s)", [i * increment for i in range(len(final_df))])
+    INCREMENT = 0.001
+    final_df.insert(0, "Time (s)", [i * INCREMENT for i in range(len(final_df))])
 
     # 5) Round the new timestamps to avoid floating-point artifacts.
     final_df["Time (s)"] = final_df["Time (s)"].round(3)
@@ -314,6 +340,6 @@ if __name__ == '__main__':
     print(final_df.head(20))
 
     # 8) Process collected data
-    input_csv = "interleaved_output.csv"  # Path to input CSV file
-    output_csv = "processed_output.csv" # Desired output CSV file name
-    process_csv_dataset(input_csv, output_csv)
+    INPUT_CSV = "interleaved_output.csv"  # Path to input CSV file
+    OUTPUT_CSV = "processed_output.csv" # Desired output CSV file name
+    process_csv_dataset(INCREMENT, OUTPUT_CSV)

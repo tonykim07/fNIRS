@@ -1,3 +1,9 @@
+"""
+config.py
+===================
+This configuration file contains constants and settings that are used throughout the software.
+"""
+
 # Path to your USB‑serial device
 SERIAL_PORT = '/dev/tty.usbmodem205D388A47311'
 

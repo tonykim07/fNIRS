@@ -1,12 +1,24 @@
+"""
+adc_client.py
+===================
+This script creates a real-time data visualization application using PyQt5 and pyqtgraph.
+It connects to a SocketIO server to receive sensor data and displays it in a GUI.
+The data is organized into groups and traces, and the application allows for real-time 
+updates of the plots.
+"""
+
 import sys
-import socketio
-import collections
 import signal
+import collections
+import socketio
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
 
 # Signal handler to exit gracefully.
-def signal_handler(sig, frame):
+def signal_handler():
+    """
+    Graceful Exit Handler
+    """
     print("Exiting gracefully...")
     if sio_thread.isRunning():
         sio_thread.requestInterruption()
@@ -25,6 +37,11 @@ data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 
 # Define a QThread to run the SocketIO client.
 class SocketClientThread(QtCore.QThread):
+    """
+    SocketClientThread is a QThread that connects to a SocketIO server
+    and listens for incoming data. It emits a signal with the received
+    sensor array when new data is available.
+    """
     newData = QtCore.pyqtSignal(list)  # will emit the sensor array
 
     def __init__(self, parent=None):
@@ -48,6 +65,11 @@ class SocketClientThread(QtCore.QThread):
                 print("Received data does not contain 24 elements.")
 
     def run(self):
+        """
+        Run the SocketIO client loop.
+        This method connects to the SocketIO server and starts listening
+        for incoming data.
+        """
         try:
             self.sio.connect('http://localhost:5000')
             # Run the SocketIO client loop until the thread is interrupted.
@@ -56,6 +78,9 @@ class SocketClientThread(QtCore.QThread):
             print("SocketIO connection error:", e)
 
     def stop(self):
+        """
+        Stop the SocketIO client and quit the thread.
+        """
         self.sio.disconnect()
         self.quit()
 
@@ -117,6 +142,11 @@ main_layout.addWidget(win)
 
 # Function to update the plots.
 def update():
+    """
+    Update function to refresh the plots with new data.
+    This function is called periodically to redraw the curves
+    with the latest data from the deque.
+    """
     for group in range(8):
         for trace in range(3):
             d = list(data[group][trace])
@@ -130,6 +160,11 @@ timer.start(1)  # Adjust refresh rate as needed.
 
 # Slot to handle new sensor data from the SocketIO thread.
 def handle_new_data(sensor_array):
+    """
+    Handle new data received from the SocketIO server.
+    This function processes the incoming sensor array and updates the
+    data storage for each group and trace.
+    """
     for group in range(8):
         group_values = sensor_array[group * 3: group * 3 + 3]
         for trace in range(3):
