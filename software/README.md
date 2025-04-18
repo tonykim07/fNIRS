@@ -63,7 +63,6 @@ This software provides a graphical interface (GUI) for real-time collection, pro
    ```
 
 3. **Set COM Port (Serial Device):**
-   ___Find your connected serial device:___
 
    - On Windows:
    Open PowerShell and run:
@@ -77,8 +76,16 @@ This software provides a graphical interface (GUI) for real-time collection, pro
    ls /dev/tty.*
    ```
    Look for something like /dev/tty.usbmodemXXXX or /dev/ttyUSB0.
+
+   Update the COM port path in config.py:
+   ```bash
+   # Update this line with your actual port
+   SERIAL_PORT = "COM3"       # Windows example
+   # or
+   SERIAL_PORT = "/dev/tty.usbmodem1234"   # macOS/Linux example
+   ```
      
-3. **Running the System:**
+4. **Running the System:**
 
     ___Normal Mode (requires connection to serial port)___ 
 
