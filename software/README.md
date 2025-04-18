@@ -62,6 +62,22 @@ This software provides a graphical interface (GUI) for real-time collection, pro
    pip install -r requirements.txt 
    ```
 
+3. **Set COM Port (Serial Device):**
+   ___Find your connected serial device:___
+
+   - On Windows:
+   Open PowerShell and run:
+   ```bash
+   Get-WMIObject Win32_SerialPort
+   ```
+   Look for something like COM3, COM4, etc.
+
+   - On macOS/Linux:
+   ```bash
+   ls /dev/tty.*
+   ```
+   Look for something like /dev/tty.usbmodemXXXX or /dev/ttyUSB0.
+     
 3. **Running the System:**
 
     ___Normal Mode (requires connection to serial port)___ 
