@@ -20,4 +20,4 @@ While conventional fNIRS systems are expensive, bulky, and limited to clinical e
 - Ergonomic mechanical design for secure, comfortable wear during extended sessions
 - Interactive Python-based GUI for live data visualization, serial communication, and module control
 
-# How to navigate our repo!
+## How to navigate our repo!
