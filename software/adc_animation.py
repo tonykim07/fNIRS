@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 import sys
+import os
 import pandas as pd
 import collections
 import signal
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
+
+# ------------------------------
+# Determine data folder
+# ------------------------------
+demo = any(arg.lower() == 'demo' for arg in sys.argv[1:])
+data_dir = 'sample_data' if demo else '.'
+csv_path = os.path.join(data_dir, 'all_groups.csv')
 
 # ------------------------------
 # Graceful Exit Handler
@@ -30,7 +38,7 @@ data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 # Load CSV data.
 # Expected CSV header:
 # Time (s),G0_Short,G0_Long1,G0_Long2,G0_Emitter,...,G7_Short,G7_Long1,G7_Long2,G7_Emitter
-df = pd.read_csv('all_groups.csv')
+df = pd.read_csv(csv_path)
 n_rows = df.shape[0]
 
 # ------------------------------

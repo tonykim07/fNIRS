@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 import sys
+import os
 import pandas as pd
 import collections
 import signal
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
+
+# ------------------------------
+# Determine data folder
+# ------------------------------
+demo = any(arg.lower() == 'demo' for arg in sys.argv[1:])
+data_dir = 'sample_data' if demo else '.'
+csv_path = os.path.join(data_dir, 'processed_output.csv')
 
 # ------------------------------
 # Graceful Exit Handler
@@ -27,7 +35,7 @@ pg.setConfigOption('foreground', 'k')
 data = [[collections.deque(maxlen=5000) for _ in range(6)] for _ in range(8)]
 
 # Load CSV data.
-df = pd.read_csv('processed_output.csv')
+df = pd.read_csv(csv_path)
 n_rows = df.shape[0]
 
 # ------------------------------

@@ -1,49 +1,51 @@
 # fNIRS Software Design
 
-This system is designed for real-time acquisition, processing, and visualization of fNIRS (functional Near-Infrared Spectroscopy) data. It features two operating modes:
+This software provides a graphical interface (GUI) for real-time collection, processing, and visualization of fNIRS (functional Near-Infrared Spectroscopy) data. It supports two main modes of operation:
 
 1. **Live Readings Mode**  
-   In this mode, only ADC (Analog-to-Digital Converter) data is captured in real time and visualized immediately. This mode is used for continuous monitoring and real-time plotting of raw sensor readings.
+   In this mode, only ADC (Analog-to-Digital Converter) data is captured and displayed on live plots. This mode is used for continuous monitoring and is ideal for observing raw signal behavior in real-time.
 
 2. **Record & Visualize Mode**  
-   In this mode, the system records data for a user-defined duration. The captured data is then processed through a series of post-processing steps (such as interleaving sensor blocks, converting intensities to optical density, applying MBLL, and CBSI). Both ADC and mBLL (processed) data are supported in this mode, and the final results are visualized interactively after processing is complete.
-
+   In this mode, the system records data for a user-defined duration. The captured data is then taken through a series of post-processing steps (ex. interleaving sensor blocks, converting intensities to optical density, applying MBLL, and CBSI). Both ADC and mBLL (data processed by applying the Modified Beer-Lambert Law) readings are supported in this mode, and the final results are displayed on interactive graphs when processing is complete.
 
 ## Features
 
-- **Two Operating Modes:**
+- **Two Operating Modes**
   - **Live Readings Mode (ADC Only):**  
     - Captures raw ADC data in real time from the serial port.
-    - Displays interactive, real-time plots for continuous monitoring.
+    - Displays interactive, real-time plots using PyQtGraph.
   - **Record & Visualize Mode (ADC and mBLL):**  
     - Records data for a specified duration.
-    - Processes recorded data using techniques such as interleaving mode blocks, OD conversion, MBLL, and CBSI.
-    - Supports visualization of both raw ADC data and processed mBLL data.
+    - Applies multiple post-processing steps (ex. interleaving, MBLL, CBSI).
+    - Supports visualization of both raw ADC data and processed mBLL data using Plotly.
 
-- **Data Capture and Processing:**
-  - Serial port communication for capturing sensor data.
-  - CSV logging of raw ADC data (`all_groups.csv`) in a dedicated `data/` directory.
-  - Post-processing pipeline that produces processed output (`processed_output.csv`).
+- **Data Capture and Processing**
+  - Communicates with hardware over a serial port.
+  - Logs raw ADC data as `all_groups.csv` in the `data/` folder.
+  - Saves processed results as `processed_output.csv`.
 
-- **Interactive Visualizations:**
-  - **Static Plots with Plotly:**  
-    - Eight separate interactive plots (one per sensor group) for ADC and mBLL modes.
+- **Visualization Options**
+  - **Interactive Static Plots (Plotly):**  
+    - Supports both ADC and mBLL data.
+    - Eight separate plots (one per sensor group) for displaying data recorded in `.csv` files.
     - Each plot includes its own legend and interactive mode bar (zoom, pan, full screen).
-  - **Real-Time Animations:**  
-    - Full-screen real-time animation windows (using PyQtGraph) for dynamic visualization.
-  - **3D Brain Mesh Visualization:**  
-    - A 3D interactive brain mesh with sensor node mapping and sensor group highlighting.
+  - **Live Animations (PyQtGraph)**  
+    - Supports ADC mode only.
+    - Eight separate plots (one per sensor group) for displaying live readings as them come in.
+  - **3D Brain Mesh**  
+    - Interactive model showing brain structure, sensor positions, and group mappings.
 
 - **Download Functionality:**
-  - Users can download CSV files with a custom file name via a popup prompt.
-
-- **Demo Mode:**
-  - When the system is started with a demo flag, it uses a mock ADC server and skips certain processing steps for demonstration purposes.
+  - Export raw or processed CSV data using a simple popup prompt.
 
 - **User-Friendly Interface:**
   - A web interface built with Bootstrap, jQuery, Plotly, and Socket.IO.
   - Control panels for sensor group selection, MUX/emitter control, and mode selection.
-  - Ability to view individual plots in a modal (or new window) for detailed analysis.
+
+- **Demo Mode:**
+  - A mock ADC server simulates data for testing or demonstrations.
+  - Skips real data processing to simplify setup.
+
 
 ## Setup Instructions
 
@@ -76,31 +78,28 @@ This system is designed for real-time acquisition, processing, and visualization
 
 ## Usage Overview
 
-### Select Operating Mode
-- **Live Readings (ADC Only):**  
-  Choose this option for real-time data visualization.
-- **Record & Visualize:**  
-  Choose this option to record data (supporting ADC and/or mBLL), then process and visualize the data.
+### Step 1: Choose Operating Mode
+- **Live Readings:** for real-time, unprocessed data (ADC Only).
+- **Record & Visualize:** to capture and process data for analysis (ADC and/or mBLL).
 
-### Start Data Capture / Recording
+### Step 2: Start Data Capture / Recording
 - Click the **Start** button to begin data acquisition.
   - In live mode, data is visualized in real time.
-  - In record mode, data is recorded for a fixed duration.
+  - In record mode, data is recorded for a fixed duration, and logged to .csv files.
 
-### Stop and Visualize
+### Step 3: Stop and Visualize (mBLL Mode)
 - Click **Stop and Plot** to end data capture.
-- After stopping, download options and visualization buttons (static plots and animations) will be displayed.
+- When data capsture is stopped, download options and visualization buttons for rendering static plots and animations will be displayed.
 
-### Interactive Analysis
+### Step 4: Analyze & Export
 - **Static Plots:**  
   Click to view interactive Plotly figures with zoom, pan, and full-screen capabilities.
 - **Animations:**  
   Launch real-time animation windows for dynamic analysis.
 - **3D Brain Mesh:**  
   Explore the interactive 3D brain mesh with sensor nodes and sensor group highlights.
-
-### Download CSV Files
-- Click **Download CSV** to prompt for a file name and download the raw or processed data.
+- **Download CSV Files:**  
+  Click **Download CSV** to prompt for a file name and download the raw or processed data.
 
 ## File Descriptions
 
@@ -122,9 +121,6 @@ This system is designed for real-time acquisition, processing, and visualization
 
 - **adc_mock_server.py:**  
   A mock ADC server that generates fake sensor data (using, for example, a triangle wave) for demo mode.
-
-- **adc_server.py:**  
-  Reads sensor data from the serial port, parses the data, and emits it via SocketIO for live ADC visualization.
 
 #### mBLL Mode
 

@@ -2,33 +2,64 @@ import sys
 import socketio
 import collections
 import signal
-
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
-import engineio.base_client
-engineio.base_client.printExc = lambda *args, **kwargs: None
 
-# Signal handler to exit the application gracefully.
+# Signal handler to exit gracefully.
 def signal_handler(sig, frame):
     print("Exiting gracefully...")
-    if sio.connected:
-        sio.disconnect()
+    if sio_thread.isRunning():
+        sio_thread.requestInterruption()
+        sio_thread.quit()
     app.quit()
 
 signal.signal(signal.SIGINT, signal_handler)
 
 # Modern UI configuration.
-pg.setConfigOption('antialias', True)    # Smoother curves and text.
-pg.setConfigOption('background', 'w')      # White background.
-pg.setConfigOption('foreground', 'k')      # Black text and lines.
+pg.setConfigOption('antialias', True)
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
 
-# Create a SocketIO client instance.
-sio = socketio.Client()
-
-# For each group (8 total) and for each trace (3 per group), store the last 5000 datapoints.
+# Data storage: For 8 groups and 3 traces per group, storing the last 5000 data points.
 data = [[collections.deque(maxlen=5000) for _ in range(3)] for _ in range(8)]
 
-# Create a Qt Application.
+# Define a QThread to run the SocketIO client.
+class SocketClientThread(QtCore.QThread):
+    newData = QtCore.pyqtSignal(list)  # will emit the sensor array
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.sio = socketio.Client()
+
+        @self.sio.event
+        def connect():
+            print("SocketIO client connected.")
+
+        @self.sio.event
+        def disconnect():
+            print("SocketIO client disconnected.")
+
+        @self.sio.on('processed_data')
+        def on_processed_data(message):
+            sensor_array = message.get('sensor_array', [])
+            if len(sensor_array) == 24:
+                self.newData.emit(sensor_array)
+            else:
+                print("Received data does not contain 24 elements.")
+
+    def run(self):
+        try:
+            self.sio.connect('http://localhost:5000')
+            # Run the SocketIO client loop until the thread is interrupted.
+            self.sio.wait()
+        except Exception as e:
+            print("SocketIO connection error:", e)
+
+    def stop(self):
+        self.sio.disconnect()
+        self.quit()
+
+# Create the Qt Application.
 app = QtWidgets.QApplication([])
 
 # Create the main window and layout.
@@ -37,7 +68,7 @@ main_layout = QtWidgets.QVBoxLayout(main_window)
 
 # Create a top horizontal layout for the legend.
 top_layout = QtWidgets.QHBoxLayout()
-top_layout.addStretch()  # Push the legend to the right.
+top_layout.addStretch()
 
 # Define colors and labels for the traces.
 trace_colors = ["red", "green", "blue"]
@@ -46,14 +77,10 @@ trace_labels = ["Channel 1", "Channel 2", "Channel 3"]
 # Create the legend layout.
 legend_layout = QtWidgets.QHBoxLayout()
 for color, label in zip(trace_colors, trace_labels):
-    # Create a small colored square.
     square = QtWidgets.QLabel()
     square.setFixedSize(15, 15)
-    # Set the background color and add a border so the color is clear.
     square.setStyleSheet(f"background-color: {color}; border: 1px solid black;")
-    # Create a label for the channel.
     text_label = QtWidgets.QLabel(label)
-    # Arrange the square and label horizontally.
     item_layout = QtWidgets.QHBoxLayout()
     item_layout.addWidget(square)
     item_layout.addWidget(text_label)
@@ -62,8 +89,6 @@ for color, label in zip(trace_colors, trace_labels):
     legend_layout.addWidget(item_widget)
 legend_layout.addStretch()
 top_layout.addLayout(legend_layout)
-
-# Add the top layout (legend) to the main layout.
 main_layout.addLayout(top_layout)
 
 # Create a GraphicsLayoutWidget to hold the plots.
@@ -74,8 +99,10 @@ plots = []
 curves = []  # curves[group][trace]
 for group in range(8):
     p = win.addPlot(title=f"Group {group+1}")
-    p.showGrid(x=True, y=True, alpha=0.3)  # Softer grid lines.
-    p.setLabel('bottom', 'Timeframe')       # Set x-axis label.
+    p.setTitle(f"Group {group+1}", size="20pt")
+    p.showGrid(x=True, y=True, alpha=0.3)
+    p.setLabel('left', 'ADC Readings')
+    p.setLabel('bottom', 'Timeframe')
     group_curves = []
     for trace in range(3):
         pen = pg.mkPen(color=trace_colors[trace], width=2)
@@ -86,44 +113,32 @@ for group in range(8):
     if group % 2 == 1:
         win.nextRow()
 
-# Add the plotting widget to the main layout.
 main_layout.addWidget(win)
 
-@sio.event
-def connect():
-    print("SocketIO client connected.")
-
-@sio.event
-def disconnect():
-    print("SocketIO client disconnected.")
-
-@sio.on('processed_data')
-def on_processed_data(message):
-    sensor_array = message.get('sensor_array', [])
-    print("Received sensor data:", sensor_array)
-    if len(sensor_array) == 24:
-        for group in range(8):
-            group_values = sensor_array[group * 3: group * 3 + 3]
-            for trace in range(3):
-                data[group][trace].append(group_values[trace])
-    else:
-        print("Received data does not contain 24 elements.")
-
+# Function to update the plots.
 def update():
-    """Update all plots with the latest data."""
     for group in range(8):
         for trace in range(3):
             d = list(data[group][trace])
             x = list(range(len(d)))
             curves[group][trace].setData(x, d)
 
-# Create a QTimer to update the plots.
+# Timer to update the plots.
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(1)  # The actual refresh rate may vary by system performance.
+timer.start(1)  # Adjust refresh rate as needed.
 
-# Connect the SocketIO client.
-sio.connect('http://localhost:5000')
+# Slot to handle new sensor data from the SocketIO thread.
+def handle_new_data(sensor_array):
+    for group in range(8):
+        group_values = sensor_array[group * 3: group * 3 + 3]
+        for trace in range(3):
+            data[group][trace].append(group_values[trace])
+
+# Start the SocketIO client thread.
+sio_thread = SocketClientThread()
+sio_thread.newData.connect(handle_new_data)
+sio_thread.start()
 
 if __name__ == '__main__':
     main_window.showFullScreen()

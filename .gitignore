@@ -34,10 +34,6 @@ exports/*
 #DS_Store
 *.DS_Store
 
-#html
-*.html
-!software/index.html
-
 # Object files
 *.o
 *.ko
@@ -77,6 +73,8 @@ exports/*
 
 # CSV Files
 *.csv
+# but don’t ignore the CSV files in software/sample_data
+!software/sample_data/*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
