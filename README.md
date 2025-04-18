@@ -10,7 +10,7 @@ This project introduces a low-cost, ergonomic functional Near-Infrared Spectrosc
 
 While conventional fNIRS systems are expensive, bulky, and limited to clinical environments, this system is designed to be accessible, accurate, and user-friendly—ideal for education, personal health tracking, and portable research applications.
 
-## System Highlights
+### System Highlights
 
 - 24 custom sensor modules supporting 24 detectors and 8 dual-wavelength LED emitters (660 nm & 990 nm)
 - Custom electrical control unit (ECU) built around a low-power STM32 microcontroller (STM32L476RET6) that interfaces with all sensor modules for synchronized control and data acquistion
