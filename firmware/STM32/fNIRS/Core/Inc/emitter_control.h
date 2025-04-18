@@ -29,6 +29,7 @@ typedef struct
     uint8_t timer;
     emitter_control_state_E curr_state;
     emitter_control_state_E requested_state;
+    uint16_t user_control_settings;
 
     float pwm_frequency;
     float duty_cycle[NUM_OF_PWM_CHANNELS];

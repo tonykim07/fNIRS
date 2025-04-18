@@ -5,7 +5,7 @@ import time
 import csv
 
 # Set up serial connection
-ser = serial.Serial('/dev/tty.usbmodem205D388A47311', 115200, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem205E386D47311', 115200, timeout=1)
 
 def parse_packet(data):
     """

@@ -6,7 +6,7 @@
 #include "main.h"
 
 /* DEFINES */
-#define DEBUG_GPIO_EXPANDER (1)
+#define DEBUG_GPIO_EXPANDER (0U)
 
 /* DATA STRUCTURES */
 

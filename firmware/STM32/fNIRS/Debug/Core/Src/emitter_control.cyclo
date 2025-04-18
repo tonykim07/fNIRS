@@ -5,6 +5,5 @@
 ../Core/Src/emitter_control.c:204:6:emitter_control_request_operating_mode	1
 ../Core/Src/emitter_control.c:209:6:emitter_control_update_frequency	1
 ../Core/Src/emitter_control.c:214:6:emitter_control_update_duty_and_phase	1
-../Core/Src/emitter_control.c:220:6:emitter_control_state_machine	14
-../Core/Src/emitter_control.c:275:6:emitter_control_is_emitter_active	1
-../Core/Src/emitter_control.c:281:9:test_pwm_driver_read_addr	1
+../Core/Src/emitter_control.c:220:6:emitter_control_state_machine	18
+../Core/Src/emitter_control.c:280:6:emitter_control_is_emitter_active	1

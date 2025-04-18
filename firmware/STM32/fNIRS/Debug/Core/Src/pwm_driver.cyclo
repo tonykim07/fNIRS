@@ -6,5 +6,3 @@
 ../Core/Src/pwm_driver.c:125:6:pwm_driver_update_frequency	2
 ../Core/Src/pwm_driver.c:156:6:pwm_driver_update_individual_patterns	7
 ../Core/Src/pwm_driver.c:222:6:pwm_driver_update_all_patterns	7
-../Core/Src/pwm_driver.c:280:6:pwm_driver_debug_write_address	1
-../Core/Src/pwm_driver.c:288:9:pwm_driver_debug_read_address	1

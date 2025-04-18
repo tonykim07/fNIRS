@@ -100,7 +100,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             break; 
 
         case USER_CONTROL:
-            uint16_t override_data = serial_interface_rx_get_user_emitter_controls();
+            uint16_t override_data = emitter_control_vars.user_control_settings;
             for (pwm_channel_E i = (pwm_channel_E)0U; i < NUM_OF_PWM_CHANNELS; i++)
             {
                 emitter_control_vars.duty_cycle[i] = (float)((override_data >> i) & 0x1);
@@ -221,10 +221,14 @@ void emitter_control_state_machine(void)
 {
     emitter_control_state_E curr_state = emitter_control_vars.curr_state;
     emitter_control_state_E next_state = curr_state;
+    uint16_t user_control_settings = serial_interface_rx_get_user_emitter_controls();
     bool run_state_machine = isr_get_emitter_control_timer_flag();
     bool user_override_enabled = serial_interface_rx_get_user_emitter_control_override_enable();
+    bool user_control_updated = (user_control_settings != emitter_control_vars.user_control_settings);
     
-    if (run_state_machine || (user_override_enabled && curr_state != CYCLING))
+    if (run_state_machine || 
+        (user_override_enabled && curr_state != USER_CONTROL && curr_state != CYCLING) || 
+        (user_override_enabled && curr_state == USER_CONTROL && user_control_updated))
     {
         switch (curr_state)
         {
@@ -266,6 +270,7 @@ void emitter_control_state_machine(void)
         }
 
         emitter_control_vars.timer++;
+        emitter_control_vars.user_control_settings = user_control_settings;
         emitter_control_update_pwm_channels(curr_state);
         emitter_control_vars.curr_state = next_state;
         isr_reset_emitter_control_timer_flag();
