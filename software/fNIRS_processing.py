@@ -8,13 +8,11 @@ import numpy as np
 import time
 import csv
 import pandas as pd
-import sys
-# from visualizer import ser  # shared serial connection
 import signal
 import serial
+from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
 
-ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01)
-
+ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
 
 stop_flag = False  # Global flag for stopping the capture loop
 

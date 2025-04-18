@@ -1,6 +1,5 @@
 import eventlet
 import serial
-import json
 eventlet.monkey_patch()
 
 import sys
@@ -8,6 +7,7 @@ import signal
 import time
 import logging
 import subprocess
+import os
 from flask import Flask, jsonify, send_from_directory, request
 from flask_socketio import SocketIO
 import plotly.graph_objs as go
@@ -19,7 +19,7 @@ from queue import Queue
 from scipy.spatial import cKDTree
 import socketio as sio_client_lib
 import pandas as pd
-import os
+import config
 
 # Check command-line arguments for a demo flag.
 demo_mode = any(arg.lower() == 'demo' for arg in sys.argv[1:])
@@ -27,7 +27,11 @@ if demo_mode:
     logging.info("Demo mode is active.")
 else:
     logging.info("Demo mode is not active.")
-    ser = serial.Serial('/dev/tty.usbmodem205D388A47311', baudrate=9600, timeout=0.01)
+    ser = serial.Serial(
+        config.SERIAL_PORT,
+        baudrate=config.BAUD_RATE,
+        timeout=config.TIMEOUT
+    )
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -541,10 +545,12 @@ def stop_serial_reader():
         
 def reinit_serial_connection():
     global ser
-    SERIAL_PORT = '/dev/tty.usbmodem205D388A47311'
-    BAUD_RATE = 9600
     try:
-        ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=0.01)
+        ser = serial.Serial(
+            config.SERIAL_PORT,
+            baudrate=config.BAUD_RATE,
+            timeout=config.TIMEOUT
+        )
         logging.info("Serial connection reinitialized.")
     except Exception as e:
         logging.error(f"Error reinitializing serial port: {e}")
@@ -555,13 +561,6 @@ def reinit_serial_connection():
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
-
-# @app.route('/data')
-# def data():
-#     latest_data = get_latest_data()
-#     if latest_data is None:
-#         return jsonify({'data': []})
-#     return jsonify({'data': latest_data.tolist()})
 
 @app.route('/update_graphs')
 def update_graphs_route():
@@ -593,7 +592,6 @@ def update_control_data():
     if not demo_mode:
         ser.write(data_bytes)
     return jsonify({'status': 'success'})
-
 
 @app.route('/start_processing', methods=['POST'])
 def start_processing():
