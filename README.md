@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/e845183c-7722-4132-92f5-48b59a016dfe" alt="Device Overview" width="400"/>
 </div>
 
-## 1. Project Overview
+## Project Overview
 
 This project introduces a low-cost, ergonomic functional Near-Infrared Spectroscopy (fNIRS) device designed for real-time brain activity monitoring. fNIRS is a non-invasive technique that uses near-infrared light to measure changes in blood oxygenation, providing insights into neural activity based on the modified Beer-Lambert Law.
 
