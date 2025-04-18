@@ -13,4 +13,4 @@ The firmware runs on the fNIRS ECU consisting of an STM32L476RET6 microcontrolle
 
 3. **Clean the project, then click Build to compile the project**
    
-4. **Connect an STLINK or STM32 Nucleo to the fNIRS ECU programming header and click Run to flash the board**
+4. **Connect an STLINK or STM32 Nucleo to the fNIRS ECU programming header (SWD Programming) and click Run to flash the board**
