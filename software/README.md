@@ -122,9 +122,6 @@ This software provides a graphical interface (GUI) for real-time collection, pro
 - **adc_mock_server.py:**  
   A mock ADC server that generates fake sensor data (using, for example, a triangle wave) for demo mode.
 
-- **adc_server.py:**  
-  Reads sensor data from the serial port, parses the data, and emits it via SocketIO for live ADC visualization.
-
 #### mBLL Mode
 
 - **mBLL_animation.py:**  
