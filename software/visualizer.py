@@ -741,7 +741,7 @@ def view_static_adc_plotly():
     This function creates a Plotly figure for each group and returns the HTML.
     """
     # Load CSV data.
-    data_dir = 'sample_data' if demo_mode else 'data'
+    data_dir = 'sample_data' if demo_mode else '.'
     csv_path = os.path.join(data_dir, 'all_groups.csv')
     df = pd.read_csv(csv_path)
 
@@ -814,7 +814,7 @@ def view_static_mbll_plotly():
     This function generates a static HTML page with Plotly figures.
     """
     # Load CSV data
-    data_dir = 'sample_data' if demo_mode else 'data'
+    data_dir = 'sample_data' if demo_mode else '.'
     csv_path = os.path.join(data_dir, 'processed_output.csv')
     df = pd.read_csv(csv_path)
 
