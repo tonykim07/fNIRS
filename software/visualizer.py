@@ -820,7 +820,7 @@ def view_static_mbll_plotly():
 
     # Build separate figures for each group.
     figures_html = ""
-    for i in range(1, 9):
+    for i in range(8):
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x = df["Time"],
