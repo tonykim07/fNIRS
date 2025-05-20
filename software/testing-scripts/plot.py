@@ -155,7 +155,7 @@ adc_plot = win.addPlot(row=1, col=1)
 adc_plot.setTitle("1) Digitalized Sensor Data", **title_style)
 
 # Line color: 10936122 → #A6CEE3
-adc_curve = adc_plot.plot(adc_df['Time (s)'], adc_df['G0_Short'], pen=pg.mkPen(adc_color, width=3), name='G0_Short')
+adc_curve = adc_plot.plot(adc_df['Time (s)'], adc_df['G7_Long1'], pen=pg.mkPen(adc_color, width=3), name='G7_Long1')
 
 # Vertical dashed lines
 adc_plot.addItem(pg.InfiniteLine(pos=20, angle=90, pen=bold_line_pen))
@@ -167,7 +167,7 @@ adc_legend.setParentItem(adc_plot.graphicsItem())
 adc_legend.setFont(legend_font)
 adc_legend.layout.setSpacing(20)
 adc_legend.setMaximumSize(300, 150)
-adc_legend.addItem(adc_curve, 'G0_Short')
+adc_legend.addItem(adc_curve, 'G7_Long1')
 
 # External axis labels
 
@@ -184,8 +184,8 @@ bl_plot = win.addPlot(row=4, col=1)
 # bl_plot.setTitle("2) ΔHbO and ΔHbR", **title_style)
 
 
-hbo_curve = bl_plot.plot(processed_df['Time'], processed_df['S1_D1_hbo'], pen=pg.mkPen(hbo_color, width=3), name='ΔHbO')
-hbr_curve = bl_plot.plot(processed_df['Time'], processed_df['S1_D1_hbr'], pen=pg.mkPen(hbr_color, width=3), name='ΔHbR')
+hbo_curve = bl_plot.plot(processed_df['Time'], processed_df['S8_D2_hbo'], pen=pg.mkPen(hbo_color, width=3), name='ΔHbO')
+hbr_curve = bl_plot.plot(processed_df['Time'], processed_df['S8_D2_hbr'], pen=pg.mkPen(hbr_color, width=3), name='ΔHbR')
 
 # Vertical dashed lines
 bl_plot.addItem(pg.InfiniteLine(pos=20, angle=90, pen=bold_line_pen))

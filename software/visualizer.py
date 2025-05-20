@@ -820,7 +820,7 @@ def view_static_mbll_plotly():
 
     # Build separate figures for each group.
     figures_html = ""
-    for i in range(8):
+    for i in range(1, 9):
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x = df["Time"],
@@ -860,7 +860,7 @@ def view_static_mbll_plotly():
         ))
 
         fig.update_layout(
-            title = f"Group {i+1}",
+            title = f"Group {i}",
             xaxis_title = "Time (s)",
             # yaxis_title = "Value",
             autosize=True,
