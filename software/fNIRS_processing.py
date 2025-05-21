@@ -40,17 +40,17 @@ def parse_packet(data):
     Parses 64 raw bytes into an 8×5 array of sensor data:
        [Group ID, Short, Long1, Long2, Emitter Status].
     """
-    noise_level = 2050
+    ZERO_LEVEL = 2050
     parsed_data = np.zeros((8, 5), dtype=int)
     for i in range(8):
         offset = i * 8
         packet_identifier = data[offset]
         sensor_channel_1 = struct.unpack('>H', data[offset+1:offset+3])[0]
-        sensor_channel_inv1 = 2 * noise_level - sensor_channel_1
+        sensor_channel_inv1 = 2 * ZERO_LEVEL - sensor_channel_1
         sensor_channel_2 = struct.unpack('>H', data[offset+3:offset+5])[0]
-        sensor_channel_inv2 = 2 * noise_level - sensor_channel_2
+        sensor_channel_inv2 = 2 * ZERO_LEVEL - sensor_channel_2
         sensor_channel_3 = struct.unpack('>H', data[offset+5:offset+7])[0]
-        sensor_channel_inv3 = 2 * noise_level - sensor_channel_3
+        sensor_channel_inv3 = 2 * ZERO_LEVEL - sensor_channel_3
         emitter_status    = data[offset+7]
 
         parsed_data[i] = [
@@ -234,8 +234,9 @@ def process_csv_dataset(
     where Type is either "hbo" or "hbr".
     """
     # Load CSV data (skip header)
-    with open(input_csv, 'r') as f:
+    with open(input_csv, newline="") as f:
         reader = csv.reader(f)
+        header = next(reader)
         data_lines = list(reader)
 
     # Convert rows to float arrays
