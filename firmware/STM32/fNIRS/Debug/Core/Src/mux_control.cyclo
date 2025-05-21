@@ -1,8 +1,8 @@
-../Core/Src/mux_control.c:100:13:mux_control_update_gpios	6
-../Core/Src/mux_control.c:144:6:mux_control_init	2
-../Core/Src/mux_control.c:158:21:mux_control_get_curr_input_channel	1
-../Core/Src/mux_control.c:163:6:mux_control_enable_sequencer	1
-../Core/Src/mux_control.c:168:6:mux_control_sequencer	8
-../Core/Src/mux_control.c:221:6:mux_control_enable_sequencer_override	1
-../Core/Src/mux_control.c:226:6:mux_control_disable_sequencer_override	1
-../Core/Src/mux_control.c:231:6:mux_control_set_input_channel_ovr	1
+../Core/Src/mux_control.c:102:13:mux_control_update_gpios	6
+../Core/Src/mux_control.c:146:6:mux_control_init	2
+../Core/Src/mux_control.c:160:21:mux_control_get_curr_input_channel	1
+../Core/Src/mux_control.c:165:6:mux_control_enable_sequencer	1
+../Core/Src/mux_control.c:170:6:mux_control_sequencer	9
+../Core/Src/mux_control.c:231:6:mux_control_enable_sequencer_override	1
+../Core/Src/mux_control.c:236:6:mux_control_disable_sequencer_override	1
+../Core/Src/mux_control.c:241:6:mux_control_set_input_channel_ovr	1

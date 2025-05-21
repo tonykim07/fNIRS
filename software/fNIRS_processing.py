@@ -342,4 +342,4 @@ if __name__ == '__main__':
     # 8) Process collected data
     INPUT_CSV = "interleaved_output.csv"  # Path to input CSV file
     OUTPUT_CSV = "processed_output.csv" # Desired output CSV file name
-    process_csv_dataset(INCREMENT, OUTPUT_CSV)
+    process_csv_dataset(INPUT_CSV, OUTPUT_CSV)

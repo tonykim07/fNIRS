@@ -115,7 +115,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
                 emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
             }
 
-            if (emitter_control_vars.timer % 2 == 0U)
+            if (emitter_control_vars.timer % 2U == 0U)
             {
                 for (pwm_channel_E i = (pwm_channel_E)0; i < NUM_OF_PWM_CHANNELS; i+=2)
                 {
@@ -127,7 +127,7 @@ static void emitter_control_update_pwm_channels(emitter_control_state_E state)
             {
                 for (pwm_channel_E i = (pwm_channel_E)1; i < NUM_OF_PWM_CHANNELS; i+=2)
                 {
-                    emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE; 
+                    emitter_control_vars.duty_cycle[i] = DEFAULT_DUTY_CYCLE;
                     emitter_control_vars.phase_shift[i] = DEFAULT_PHASE_SHIFT;
                 }
             }

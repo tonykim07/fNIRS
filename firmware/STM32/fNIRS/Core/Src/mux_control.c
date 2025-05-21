@@ -27,6 +27,8 @@
 #define PORT_ZERO_DISABLED_PIN_STATE        (0b00000000)
 #define PORT_ONE_DISABLED_PIN_STATE         (0b00000000)
 
+#define MUX_SEQUENCER_FREQ_TICKS            (50U)
+
 /* DATA STRUCTURES */
 static gpio_expander_handler_S gpio_expander_vars[NUM_OF_MUX_CONTROLS] = 
 {
@@ -167,55 +169,63 @@ void mux_control_enable_sequencer(void)
 
 void mux_control_sequencer(void)
 {
-    mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
-
-    switch (next_channel)
+    if (mux_control_vars.mux_timer > MUX_SEQUENCER_FREQ_TICKS)
     {
-        case MUX_INPUT_CHANNEL_ONE:
-            next_channel = MUX_INPUT_CHANNEL_TWO;
-            break;
+        mux_input_channel_E next_channel = mux_control_vars.curr_input_channel;
 
-        case MUX_INPUT_CHANNEL_TWO:
-            next_channel = MUX_INPUT_CHANNEL_THREE;
-            break;
+        switch (next_channel)
+        {
+            case MUX_INPUT_CHANNEL_ONE:
+                next_channel = MUX_INPUT_CHANNEL_TWO;
+                break;
 
-        case MUX_INPUT_CHANNEL_THREE:
-            next_channel = MUX_INPUT_CHANNEL_ONE;
-            break;
+            case MUX_INPUT_CHANNEL_TWO:
+                next_channel = MUX_INPUT_CHANNEL_THREE;
+                break;
 
-        case MUX_INPUT_CHANNEL_FOUR:
-            // Note: channel four doesn't have direct input in hardware
-            next_channel = MUX_INPUT_CHANNEL_ONE;
-            break;
+            case MUX_INPUT_CHANNEL_THREE:
+                next_channel = MUX_INPUT_CHANNEL_ONE;
+                break;
 
-        case MUX_DISABLED:
-            if (mux_control_vars.enabled)
-            {
-                next_channel = MUX_INPUT_CHANNEL_FOUR;
-            }
-            break;
+            case MUX_INPUT_CHANNEL_FOUR:
+                // Note: channel four doesn't have direct input in hardware
+                next_channel = MUX_INPUT_CHANNEL_ONE;
+                break;
 
-        default:
-            break;
+            case MUX_DISABLED:
+                if (mux_control_vars.enabled)
+                {
+                    next_channel = MUX_INPUT_CHANNEL_FOUR;
+                }
+                break;
+
+            default:
+                break;
+        }
+
+    #if DISABLE_MUXING
+        next_channel = MUX_INPUT_CHANNEL_ONE;
+    #endif
+
+        if (mux_control_vars.mux_control_ovr)
+        {
+            next_channel = mux_control_vars.input_channel_ovr;
+        }
+
+    #if !DISABLE_MUXING
+        __disable_irq();
+    #endif
+        mux_control_update_gpios(next_channel);
+        mux_control_vars.curr_input_channel = next_channel;
+    #if !DISABLE_MUXING
+        __enable_irq();
+    #endif
+        mux_control_vars.mux_timer = 0U;
     }
-
-#if DISABLE_MUXING
-    next_channel = MUX_INPUT_CHANNEL_ONE;
-#endif
-
-    if (mux_control_vars.mux_control_ovr)
+    else
     {
-        next_channel = mux_control_vars.input_channel_ovr;
+        mux_control_vars.mux_timer++;
     }
-
-#if !DISABLE_MUXING
-    __disable_irq();
-#endif
-    mux_control_update_gpios(next_channel);
-    mux_control_vars.curr_input_channel = next_channel;
-#if !DISABLE_MUXING
-    __enable_irq();
-#endif
 }
 
 void mux_control_enable_sequencer_override(void)

@@ -7,14 +7,14 @@
 
 /* DEFINES */
 
-#define LPF_ALPHA (0.3)
+#define LPF_ALPHA (0.6)
 
 /* DATA STRUCTURES */
 
 // Hardware mapping
 // sensor group 1: adc1 or adc2, channel 15
 // sensor group 2: adc1 or adc2, channel 14
-// sensor group 3: adc1 or adc2, channel 13
+// sensor group 3: adc1 or adc2, channel 13s
 // sensor group 4: adc1 or adc2, channel 12
 // sensor group 5: adc1, adc2, or adc3, channel 4
 // sensor group 6: adc1, adc2, or adc3, channel 3

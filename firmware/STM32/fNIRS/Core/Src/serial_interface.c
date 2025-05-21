@@ -78,8 +78,4 @@ void serial_interface_tx_send_sensor_data(void)
     }
 
     CDC_Transmit_FS(tx_buffer, sizeof(tx_buffer));
-
-    // For debugging: to read one sensor channel
-//    uint16_t temp = sensing_get_sensor_calibrated_value(SENSOR_MODULE_1, MUX_INPUT_CHANNEL_ONE);
-//    CDC_Transmit_FS(&temp, sizeof(temp));
 }
