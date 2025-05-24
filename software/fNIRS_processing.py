@@ -18,15 +18,16 @@ import nirsimple.processing as nproc
 import pandas as pd
 import serial
 from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
+from scipy.signal import butter, sosfiltfilt, resample_poly
 
 ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
 
 STOP_FLAG = False  # Global flag for stopping the capture loop
 
 def handle_stop_signal():
-    """
+    """ 
     Signal handler for SIGUSR1 to set the STOP_FLAG.
-    This allows the capture loop to stop gracefully.
+    This allows the capture loop to stop gracefully. 
     """
     global STOP_FLAG
     print("Received stop signal, setting stop_flag to True.")
@@ -34,6 +35,49 @@ def handle_stop_signal():
 
 # Register the handler for SIGUSR1
 signal.signal(signal.SIGUSR1, handle_stop_signal)
+
+def revert_inversion(df_in, zero_level=2050, out_csv="all_groups_no_inv.csv"):
+    """
+    Re-maps the Short/Long columns back to raw ADC counts and
+    saves the result to `out_csv`.
+    """
+    df = df_in.copy()
+    reading_cols = [c for c in df.columns if ("Short" in c or "Long" in c)]
+    df[reading_cols] = 2 * zero_level - df[reading_cols]
+    df.to_csv(out_csv, index=False)
+    print(f"✓ Wrote non-inverted data → {out_csv}")
+    return df
+
+def butter_bandpass_sos(lowcut, highcut, fs, order=4):
+    """Return an SOS band-pass filter."""
+    nyq = 0.5 * fs
+    sos = butter(order, [lowcut / nyq, highcut / nyq],
+                 btype="band", output="sos")
+    return sos
+
+def smart_bandpass(data, fs,
+                   lowcut=0.05, highcut=0.1, order=4,
+                   target_fs=20.0):
+    """
+    Zero-phase band-pass along *time* axis.
+    `data` shape: (n_channels, n_timepoints)
+    """
+    # Down-sample
+    if fs > target_fs + 1: # leave a little margin
+        decim = int(round(fs / target_fs))
+        fs_ds = fs / decim
+        data_ds = resample_poly(data, up=1, down=decim, axis=1)
+    else:
+        decim, fs_ds, data_ds = 1, fs, data
+    # Design stable filter
+    sos = butter_bandpass_sos(lowcut, highcut, fs_ds, order)
+    # Zero-phase filtering
+    data_bp = sosfiltfilt(sos, data_ds, axis=1, padtype="odd",
+                          padlen=3 * (order + 1))
+    # Up-sample back if we had decimated
+    if decim > 1:
+        data_bp = resample_poly(data_bp, up=decim, down=1, axis=1)
+    return data_bp
 
 def parse_packet(data):
     """ 
@@ -154,25 +198,29 @@ def interleave_mode_blocks(df, mode_col="G0_Emitter"):
         final_df.drop(columns="group", inplace=True)
     return final_df
 
-def build_channel_info(age, sd_distance):
+def build_channel_info(age, sd_short, sd_long):
     """
     Builds channel names, wavelengths, DPFs, and source-detector distances.
     There are 24 physical channels (8 sensor groups × 3 detectors), and each is
     measured at two wavelengths (660 nm and 940 nm), yielding 48 channels.
     """
-    physical_channels = []
-    for set_idx in range(1, 9):
-        for det in range(1, 4):
-            physical_channels.append(f"S{set_idx}_D{det}")
-    channel_names = []
-    ch_wls = []
+    physical_channels = [f"S{s}_D{d}"
+                         for s in range(1, 9)      # sets 1–8
+                         for d in (1, 2, 3)]       # detectors 1-3
+    channel_names, ch_wls, ch_dpfs, ch_distances = [], [], [], []
     for name in physical_channels:
-        channel_names.append(name)   # For 660 nm measurement
+        det_num = int(name.split("_D")[1])
+        dist    = sd_short if det_num == 1 else sd_long
+        # 660nm
+        channel_names.append(name)
         ch_wls.append(660.0)
-        channel_names.append(name)   # For 940 nm measurement
+        ch_dpfs.append(nsp.get_dpf(660.0, age))
+        ch_distances.append(dist)
+        # 940nm
+        channel_names.append(name)
         ch_wls.append(940.0)
-    ch_dpfs = [nsp.get_dpf(wl, age) for wl in ch_wls]
-    ch_distances = [sd_distance] * len(ch_wls)
+        ch_dpfs.append(nsp.get_dpf(940.0, age))
+        ch_distances.append(dist)
     return channel_names, ch_wls, ch_dpfs, ch_distances
 
 def combine_two_rows(row_mode1, row_mode2):
@@ -214,8 +262,12 @@ def process_csv_dataset(
     input_csv,
     output_csv,
     age=22,
-    sd_distance=5.0,
-    molar_ext_coeff_table='wray'
+    sd_short=0.6,
+    sd_long=3.5,
+    molar_ext_coeff_table='wray',
+    bp_low=0.05,
+    bp_high=0.1,
+    bp_order=4
 ):
     """
     Processes an fNIRS CSV dataset for post-processing.
@@ -262,13 +314,20 @@ def process_csv_dataset(
     samples = np.array(samples).T  # shape: (48, N)
 
     # Build channel information from established models
-    channel_names, ch_wls, ch_dpfs, ch_distances = build_channel_info(age, sd_distance)
+    channel_names, ch_wls, ch_dpfs, ch_distances = build_channel_info(age, sd_short, sd_long)
 
     # Apply OD conversion to the entire dataset
     delta_od = nsp.intensities_to_od_changes(samples)
+
+    # Band-pass filtering the OD changes
+    # High-pass ≥ 0.1 Hz to drop drifts; low-pass ≤ 0.05 Hz to drop pulse & noise.
+    dt  = np.mean(np.diff(times))
+    fs  = 1.0 / dt
+    delta_od_filt = smart_bandpass(delta_od, fs, lowcut=bp_low, highcut=bp_high, order=bp_order)
+
     # Apply MBLL to compute concentration changes
     delta_c, new_ch_names, new_ch_types = nsp.mbll(
-        delta_od,
+        delta_od_filt,
         channel_names,
         ch_wls,
         ch_dpfs,
@@ -288,7 +347,8 @@ def process_csv_dataset(
     with open(output_csv, "w", newline="") as f_out:
         writer = csv.writer(f_out)
         writer.writerow(header_out)
-        for col_idx in range(delta_c_corr.shape[1]):
+        n_cols = min(len(times), delta_c_corr.shape[1])
+        for col_idx in range(n_cols):
             time_val = times[col_idx]
             row_values = [time_val] + list(delta_c_corr[:, col_idx])
             writer.writerow(row_values)
@@ -313,6 +373,9 @@ if __name__ == '__main__':
 
     # Read CSV file
     df = pd.read_csv("all_groups.csv")
+
+    # Revert inversion (if needed)
+    #df = revert_inversion(df)
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.

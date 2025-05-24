@@ -34,6 +34,18 @@ def handle_stop_signal():
 # Register the handler for SIGUSR1
 signal.signal(signal.SIGUSR1, handle_stop_signal) """
 
+def revert_inversion(df_in, zero_level=2050, out_csv="all_groups_no_inv.csv"):
+    """
+    Re-maps the Short/Long columns back to raw ADC counts and
+    saves the result to `out_csv`.
+    """
+    df = df_in.copy()
+    reading_cols = [c for c in df.columns if ("Short" in c or "Long" in c)]
+    df[reading_cols] = 2 * zero_level - df[reading_cols]
+    df.to_csv(out_csv, index=False)
+    print(f"✓ Wrote non-inverted data → {out_csv}")
+    return df
+
 def butter_bandpass_sos(lowcut, highcut, fs, order=4):
     """Return an SOS band-pass filter."""
     nyq = 0.5 * fs
@@ -359,6 +371,9 @@ if __name__ == '__main__':
 
     # Read CSV file
     df = pd.read_csv("rms_output.csv")
+
+    # Revert inversion (if needed)
+    #df = revert_inversion(df)
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
