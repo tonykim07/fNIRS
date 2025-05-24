@@ -16,8 +16,8 @@ from tabulate import tabulate
 import nirsimple.preprocessing as nsp
 import nirsimple.processing as nproc
 import pandas as pd
-import serial
-from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
+# import serial
+# from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
 from scipy.signal import butter, sosfiltfilt, resample_poly
 
 """ ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
@@ -358,7 +358,7 @@ if __name__ == '__main__':
     #capture_data("all_groups.csv", stop_on_enter=True)
 
     # Read CSV file
-    df = pd.read_csv("all_groups.csv")
+    df = pd.read_csv("rms_output.csv")
 
     # Data formmating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
@@ -381,12 +381,12 @@ if __name__ == '__main__':
     final_df["Time (s)"] = final_df["Time (s)"].round(3)
 
     # 6) Write the final DataFrame to CSV
-    final_df.to_csv("interleaved_output.csv", index=False)
+    final_df.to_csv("testing-scripts/interleaved_output.csv", index=False)
 
     # 7) Output the resulting DataFrame.
     print(final_df.head(20))
 
     # 8) Process collected data
-    INPUT_CSV = "interleaved_output.csv"  # Path to input CSV file
-    OUTPUT_CSV = "processed_output.csv" # Desired output CSV file name
+    INPUT_CSV = "testing-scripts/interleaved_output.csv"  # Path to input CSV file
+    OUTPUT_CSV = "testing-scripts/processed_output.csv" # Desired output CSV file name
     process_csv_dataset(INPUT_CSV, OUTPUT_CSV)

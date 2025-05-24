@@ -14,7 +14,6 @@ import pyqtgraph as pg
 from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
 
 PACKET_SIZE = 64
-NOISE_LEVEL = 2050
 
 ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
 
