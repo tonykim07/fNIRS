@@ -1,10 +1,16 @@
+"""
+adc_to_csv.py
+==================
+This script captures raw ADC data from a serial port and writes to a csv
+in the format used for the post processing pipeline
+"""
+
 import serial
 import struct
 import numpy as np
 import time
 import csv
 
-# Set up serial connection
 ser = serial.Serial('/dev/tty.usbmodem205E386D47311', 115200, timeout=1)
 
 def parse_packet(data):
@@ -30,7 +36,6 @@ def parse_packet(data):
         ]
     return parsed_data
 
-# === Create CSV and Overwrite Previous File ===
 csv_filename = "all_groups.csv"
 with open(csv_filename, mode='w', newline='') as csvfile:
     writer = csv.writer(csvfile)
@@ -53,8 +58,7 @@ with open(csv_filename, mode='w', newline='') as csvfile:
             flat_row = [elapsed_time]
             for i in range(8):
                 flat_row += parsed_data[i][1:5].tolist()
-
-            # Write to CSV
+                
             writer.writerow(flat_row)
             csvfile.flush()
             print(f"{elapsed_time}s - Logged frame to CSV.")
