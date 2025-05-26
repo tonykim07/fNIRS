@@ -1,5 +1,5 @@
 """
-fNIRS_processing.py
+fNIRS_processing_csv.py
 ==================
 This script captures raw ADC data from a serial port, processes it, and
 outputs the results to a CSV file. It includes functions for parsing packets,
@@ -18,16 +18,16 @@ import nirsimple.processing as nproc
 import pandas as pd
 import serial
 from config import SERIAL_PORT, BAUD_RATE, TIMEOUT
-from scipy.signal import butter, sosfiltfilt, resample_poly
+from scipy.signal import butter, sosfiltfilt, resample_poly, filtfilt
 
 ser = serial.Serial(SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT)
 
 STOP_FLAG = False  # Global flag for stopping the capture loop
 
 def handle_stop_signal():
-    """ 
+    """
     Signal handler for SIGUSR1 to set the STOP_FLAG.
-    This allows the capture loop to stop gracefully. 
+    This allows the capture loop to stop gracefully.
     """
     global STOP_FLAG
     print("Received stop signal, setting stop_flag to True.")
@@ -47,6 +47,87 @@ def revert_inversion(df_in, zero_level=2050, out_csv="all_groups_no_inv.csv"):
     df.to_csv(out_csv, index=False)
     print(f"✓ Wrote non-inverted data → {out_csv}")
     return df
+
+import numpy as np
+import pandas as pd
+
+def threshold_filter(df, lower_threshold=200, upper_threshold=4000, zero_level=2050, exclude_columns=None):
+    """Suppress outliers of a data frame."""
+    if exclude_columns is None:
+        exclude_columns = []
+
+    suppressed_df = df.copy()
+
+    for col in df.columns:
+        if col not in exclude_columns:
+            suppressed_df[col] = np.where(
+                (df[col] < lower_threshold) | (df[col] > upper_threshold),
+                zero_level,
+                df[col]
+            )
+
+    return suppressed_df
+
+def butter_lowpass_filter(df, cutoff_hz, fs, order=4, exclude_columns=None):
+    """Apply a low-pass Butterworth filter to selected columns of a data frame."""
+    if exclude_columns is None:
+        exclude_columns = []
+
+    filtered_df = df.copy()
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff_hz / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+
+    for col in df.columns:
+        if col not in exclude_columns:
+            filtered_df[col] = filtfilt(b, a, df[col])
+
+    return filtered_df
+
+def sliding_window_rms(df, emitter_col="G0_Emitter", group_prefix="G", num_groups=8,
+                         remove_dc=False, split_segments_in_half=False):
+    """
+    Apply RMS calculation to segments defined by the 
+    emitter transitions 
+    """
+    df_rms = df.copy()
+
+    emitter_reference = df[emitter_col].values
+    change_points = np.where(np.diff(emitter_reference) != 0)[0] + 1
+    segments = np.split(np.arange(len(df)), change_points)
+
+    if split_segments_in_half:
+        split_segments = []
+        for segment in segments:
+            n = len(segment)
+            if n == 0:
+                continue
+            mid = n // 2
+            split_segments.append(segment[:mid])
+            split_segments.append(segment[mid:])
+        segments = split_segments
+
+    groups = [f"{group_prefix}{i}" for i in range(num_groups)]
+
+    for g in groups:
+        short_col = f"{g}_Short"
+        long1_col = f"{g}_Long1"
+        long2_col = f"{g}_Long2"
+
+        for segment in segments:
+            if len(segment) == 0:
+                continue
+            segment_idx = segment.tolist()
+
+            for col in [short_col, long1_col, long2_col]:
+                segment_data = df.loc[segment_idx, col]
+                if remove_dc:
+                    segment_data = segment_data - segment_data.mean()
+                rms_val = np.sqrt(np.mean(np.square(segment_data)))
+                df_rms.loc[segment_idx, col] = rms_val
+
+    return df_rms
+
 
 def butter_bandpass_sos(lowcut, highcut, fs, order=4):
     """Return an SOS band-pass filter."""
@@ -377,33 +458,41 @@ if __name__ == '__main__':
     # Revert inversion (if needed)
     #df = revert_inversion(df)
 
-    # Data formmating and Processing
+    # Extract sampling rate from data
+    time = df['Time (s)']
+    dt = time.diff().mean()
+    fs = 1.0 / dt
+
+    # Data formating and Processing
     # 1) Completely ignore the original timestamp by dropping it if it exists.
     if "Time (s)" in df.columns:
         df.drop(columns=["Time (s)"], inplace=True)
 
-    # 2) Filter out rows with any Short/Long reading <200 or >3800.
-    reading_cols = [c for c in df.columns if "Short" in c or "Long" in c]
-    mask = (df[reading_cols] >= 0).all(axis=1) & (df[reading_cols] <= 4000).all(axis=1)
-    df = df[mask].copy()
+    # 2) Filter out raw analog data
+    exclude_cols = [c for c in df.columns if 'Emitter' in c]
+    df = threshold_filter(df, exclude_columns=exclude_cols)
+    df = butter_lowpass_filter(df=df, cutoff_hz=1.0, fs=fs, order=4, exclude_columns=exclude_cols)
 
-    # 3) Interleave the blocks based on the mode column.
+    # 3) Convert raw analog data to intensities
+    df = sliding_window_rms(df=df)
+
+    # 4) Interleave the blocks based on the mode column.
     final_df = interleave_mode_blocks(df, mode_col="G0_Emitter")
 
-    # 4) Assign new timestamps at a fixed increment (0.001 s in this example)
+    # 5) Assign new timestamps at a fixed increment (0.001 s in this example)
     INCREMENT = 0.001
     final_df.insert(0, "Time (s)", [i * INCREMENT for i in range(len(final_df))])
 
-    # 5) Round the new timestamps to avoid floating-point artifacts.
+    # 6) Round the new timestamps to avoid floating-point artifacts.
     final_df["Time (s)"] = final_df["Time (s)"].round(3)
 
-    # 6) Write the final DataFrame to CSV
+    # 7) Write the final DataFrame to CSV
     final_df.to_csv("interleaved_output.csv", index=False)
 
-    # 7) Output the resulting DataFrame.
+    # 8) Output the resulting DataFrame.
     print(final_df.head(20))
 
-    # 8) Process collected data
-    INPUT_CSV = "interleaved_output.csv"  # Path to input CSV file
-    OUTPUT_CSV = "processed_output.csv" # Desired output CSV file name
+    # 9) Process collected data
+    INPUT_CSV = "interleaved_output.csv"  
+    OUTPUT_CSV = "processed_output.csv"
     process_csv_dataset(INPUT_CSV, OUTPUT_CSV)
