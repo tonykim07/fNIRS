@@ -1,5 +1,5 @@
 """
-fNIRS_processing_csv.py
+fNIRS_processing.py
 ==================
 This script captures raw ADC data from a serial port, processes it, and
 outputs the results to a CSV file. It includes functions for parsing packets,
@@ -47,9 +47,6 @@ def revert_inversion(df_in, zero_level=2050, out_csv="all_groups_no_inv.csv"):
     df.to_csv(out_csv, index=False)
     print(f"✓ Wrote non-inverted data → {out_csv}")
     return df
-
-import numpy as np
-import pandas as pd
 
 def threshold_filter(df, lower_threshold=200, upper_threshold=4000, zero_level=2050, exclude_columns=None):
     """Suppress outliers of a data frame."""
